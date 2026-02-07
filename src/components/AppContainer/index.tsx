@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { useAppStore } from '../../stores/appStore'
+import { useConflictStore } from '../../stores/conflictStore'
 import { ColumnsView } from '../ColumnsView'
 import { Footer } from '../Footer'
 import { SettingsPanel } from '../SettingsPanel'
@@ -8,6 +9,7 @@ import { SearchBarOverlay } from '../SearchBar/SearchBarOverlay'
 import { OnboardingFlow } from '../OnboardingFlow'
 import { FeedbackToast } from '../FeedbackToast'
 import { CommandPalette } from '../CommandPalette'
+import { ConflictDialog } from '../ConflictDialog'
 
 interface AppContainerProps {
   children?: ReactNode
@@ -25,6 +27,9 @@ export function AppContainer({ children }: AppContainerProps) {
   const setPreviousView = useAppStore((s) => s.setPreviousView)
   const searchBarOpen = useAppStore((s) => s.searchBarOpen)
   const onboardingOpen = useAppStore((s) => s.onboardingOpen)
+  const pendingConflict = useConflictStore((s) => s.pendingConflict)
+  const resolveConflict = useConflictStore((s) => s.resolveConflict)
+  const cancelConflict = useConflictStore((s) => s.cancelConflict)
 
   const handleCloseSettings = () => {
     setCurrentView(previousView ?? 'main_db')
@@ -69,6 +74,13 @@ export function AppContainer({ children }: AppContainerProps) {
       <CommandPalette />
       {onboardingOpen && <OnboardingFlow />}
       <FeedbackToast />
+      {pendingConflict && (
+        <ConflictDialog
+          conflict={pendingConflict}
+          onResolve={(resolution, data) => resolveConflict(resolution, data)}
+          onCancel={cancelConflict}
+        />
+      )}
     </div>
   )
 }

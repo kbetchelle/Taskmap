@@ -18,6 +18,7 @@ export {
 } from './priorityCategory'
 
 export { getFileIcon } from './fileIcons'
+export { debounce } from './debounce'
 
 export function parseISODate(s: string | null | undefined): Date | null {
   if (s == null || s === '') return null

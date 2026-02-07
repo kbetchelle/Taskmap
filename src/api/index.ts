@@ -1,4 +1,5 @@
 export { supabase } from '../lib/supabase'
+export * from './conflictResolution'
 export * from './directories'
 export * from './tasks'
 export * from './search'

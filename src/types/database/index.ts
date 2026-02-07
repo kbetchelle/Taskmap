@@ -16,6 +16,8 @@ export interface Directory {
   updated_at: string;
   user_id: string;
   depth_level: number;
+  version?: number;
+  updated_by?: string | null;
 }
 
 export interface Task {
@@ -35,6 +37,8 @@ export interface Task {
   created_at: string;
   updated_at: string;
   user_id: string;
+  version?: number;
+  updated_by?: string | null;
 }
 
 export interface TaskAttachment {

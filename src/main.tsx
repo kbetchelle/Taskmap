@@ -1,7 +1,17 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import { ErrorBoundary } from './components/ErrorBoundary'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000,
+      gcTime: 300000,
+    },
+  },
+})
 
 // #region agent log
 const rootEl = document.getElementById('root')
@@ -13,9 +23,11 @@ async function bootstrap() {
     const { default: App } = await import('./App.tsx')
     createRoot(rootEl!).render(
       <StrictMode>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </QueryClientProvider>
       </StrictMode>,
     )
     // #region agent log

@@ -8,7 +8,7 @@ import { COLUMN_WIDTH_PX } from '../../lib/theme'
 import { useColumnScroll } from '../../hooks/useColumnScroll'
 import { useKeyboard } from '../../hooks/useKeyboard'
 import { showInlineError } from '../../lib/inlineError'
-import { pushUndoAndPersist, performUndo, performRedo } from '../../lib/undo'
+import { pushUndoAndPersist, performUndo, performRedo, loadMoreUndoHistory } from '../../lib/undo'
 import { useFeedbackStore } from '../../stores/feedbackStore'
 import type { Task, Directory } from '../../types'
 import type { ColorMode, ClipboardItem, SavedView, FilterState } from '../../types/state'
@@ -1216,13 +1216,17 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   }, [])
 
   const handleUndo = useCallback(async () => {
-    const item = popUndo()
+    let item = popUndo()
+    if (!item && userId) {
+      const loaded = await loadMoreUndoHistory(userId)
+      if (loaded) item = popUndo()
+    }
     if (!item) {
       useFeedbackStore.getState().showInfo('Nothing to undo')
       return
     }
     await performUndo(item)
-  }, [popUndo])
+  }, [popUndo, userId])
 
   const handleRedo = useCallback(async () => {
     const item = redo()
@@ -1409,6 +1413,16 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
               : null
           }
           items={getItemsForColumn(columnIndex)}
+          usePagination={
+            !!directoryId &&
+            !activeFilters.searchQuery.trim() &&
+            activeFilters.tags.length === 0 &&
+            activeFilters.priorities.length === 0 &&
+            activeFilters.categories.length === 0 &&
+            activeFilters.dateRange == null &&
+            searchResultTaskIds == null &&
+            (childCountByDirectoryId[directoryId] ?? 0) > 200
+          }
           selectedItemIds={selectedItemIds}
           focusedItemId={focusedItemId}
           isActive={focusedColumnIndex === columnIndex}

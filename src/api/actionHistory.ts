@@ -36,6 +36,43 @@ export async function fetchUnexpiredActionHistory(userId: string): Promise<Actio
   return (data as ActionHistory[]) ?? []
 }
 
+/** Fetch recent unexpired action history (lazy load). Returns items in chronological order (oldest first). */
+export async function loadRecentActionHistory(
+  userId: string,
+  limit = 20
+): Promise<ActionHistory[]> {
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('action_history')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('expires_at', now)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  const rows = (data as ActionHistory[]) ?? []
+  return rows.reverse()
+}
+
+/** Fetch older action history for lazy load (items with created_at < beforeCreatedAt). */
+export async function loadMoreActionHistory(
+  userId: string,
+  beforeCreatedAt: string,
+  limit = 20
+): Promise<ActionHistory[]> {
+  const { data, error } = await supabase
+    .from('action_history')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('expires_at', new Date().toISOString())
+    .lt('created_at', beforeCreatedAt)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  const rows = (data as ActionHistory[]) ?? []
+  return rows.reverse()
+}
+
 // Server-side cleanup (call from cron or manually)
 export async function cleanupExpiredActions(): Promise<number> {
   const { data, error } = await supabase.rpc('cleanup_expired_actions')

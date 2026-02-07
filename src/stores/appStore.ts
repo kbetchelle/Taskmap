@@ -75,6 +75,7 @@ interface AppStoreState {
   clearUndoStack: () => void
   setUndoStack: (items: ActionHistoryItem[]) => void
   setUndoCurrentIndex: (index: number) => void
+  prependUndoHistory: (items: ActionHistoryItem[]) => void
 }
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
@@ -195,4 +196,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   clearUndoStack: () => set({ undoStack: [], undoCurrentIndex: -1 }),
   setUndoStack: (items) => set({ undoStack: items }),
   setUndoCurrentIndex: (index) => set({ undoCurrentIndex: index }),
+  prependUndoHistory: (items) =>
+    set((s) => {
+      if (items.length === 0) return s
+      const stack = [...items, ...s.undoStack]
+      const index =
+        s.undoCurrentIndex < 0 ? items.length - 1 : s.undoCurrentIndex + items.length
+      return { undoStack: stack, undoCurrentIndex: index }
+    }),
 }))

@@ -5,7 +5,7 @@ import { useDirectoryStore } from '../stores/directoryStore'
 import { useTaskStore } from '../stores/taskStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAppStore } from '../stores/appStore'
-import { fetchUnexpiredActionHistory } from '../api/actionHistory'
+import { loadRecentActionHistory } from '../api/actionHistory'
 import type { ActionHistoryItem } from '../types/state'
 
 export function useAuth() {
@@ -42,7 +42,7 @@ export function useAuthSyncStores() {
     fetchDirectories(user.id)
     fetchActiveItems(user.id)
     fetchSettings(user.id)
-    fetchUnexpiredActionHistory(user.id).then((rows) => {
+    loadRecentActionHistory(user.id, 20).then((rows) => {
       const currentStack = useAppStore.getState().undoStack
       if (currentStack.length > 0) return
       const items: ActionHistoryItem[] = rows.map((r) => ({
@@ -53,9 +53,8 @@ export function useAuthSyncStores() {
         createdAt: new Date(r.created_at).getTime(),
         expiresAt: new Date(r.expires_at).getTime(),
       }))
-      const capped = items.length > 100 ? items.slice(-100) : items
-      setUndoStack(capped)
-      setUndoCurrentIndex(capped.length - 1)
+      setUndoStack(items)
+      setUndoCurrentIndex(items.length - 1)
     })
   }, [user?.id, fetchDirectories, fetchActiveItems, fetchSettings, setUndoStack, setUndoCurrentIndex])
 }

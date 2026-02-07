@@ -1,5 +1,9 @@
 import { supabase } from '../lib/supabase'
 import type { Task, ActiveItemRow } from '../types'
+import {
+  saveTaskWithConflictCheck,
+  type SaveTaskResult,
+} from './conflictResolution'
 
 export async function fetchTasksByDirectory(directoryId: string): Promise<Task[]> {
   const { data, error } = await supabase
@@ -66,6 +70,16 @@ export async function updateTask(
     .single()
   if (error) throw error
   return data as Task
+}
+
+/** Update task with conflict check. Use for normal saves. */
+export async function updateTaskWithConflictCheck(
+  taskId: string,
+  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'position' | 'directory_id'>>,
+  currentTask: Task
+): Promise<SaveTaskResult> {
+  const version = currentTask.version ?? 1
+  return saveTaskWithConflictCheck(taskId, updates, version, currentTask)
 }
 
 export async function deleteTask(id: string): Promise<void> {

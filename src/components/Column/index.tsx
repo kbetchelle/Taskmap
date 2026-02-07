@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Task, Directory } from '../../types'
+import { useDirectoryContents } from '../../hooks/useDirectoryContents'
 import type { ColorMode } from '../../types/state'
 import type { CreationState, InlineEditState } from '../../stores/uiStore'
 import { COLUMN_WIDTH_PX } from '../../lib/theme'
@@ -61,6 +62,7 @@ interface ColumnProps {
   onItemDragStart?: (id: string) => void
   onItemDragEnd?: () => void
   onDrop?: (targetDirectoryId: string | null, position: number, itemId: string) => void
+  usePagination?: boolean
 }
 
 export function Column({
@@ -87,12 +89,35 @@ export function Column({
   onItemDragStart,
   onItemDragEnd,
   onDrop,
+  usePagination = false,
 }: ColumnProps) {
   const headerLabel = directoryId == null ? 'Root' : directoryName ?? ''
   const [dropIndex, setDropIndex] = useState<number>(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const ROW_ESTIMATE = 40
   const VIRTUAL_THRESHOLD = 80
+
+  const {
+    data: queryData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useDirectoryContents(directoryId, usePagination)
+
+  const paginatedItems = queryData?.pages.flatMap((p) => p.items) ?? []
+  const displayItems = usePagination && directoryId != null ? paginatedItems : items
+  const loadingMore = isFetchingNextPage
+
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget
+      const { scrollTop, scrollHeight, clientHeight } = el
+      if (hasNextPage && !isFetchingNextPage && scrollHeight - scrollTop <= clientHeight * 1.5) {
+        fetchNextPage()
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  )
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -129,7 +154,7 @@ export function Column({
     | { type: 'inline-edit'; itemId: string; initialValue: string }
     | { type: 'item'; item: Task | Directory }
   const rows: Row[] = []
-  for (let i = 0; i < items.length; i++) {
+  for (let i = 0; i < displayItems.length; i++) {
     if (
       creationState?.mode === 'type-select' &&
       creationState.columnIndex === columnIndex &&
@@ -146,20 +171,20 @@ export function Column({
     ) {
       rows.push({ type: 'directory-naming', itemId: creationState.itemId })
     }
-    if (inlineEditState && items[i].id === inlineEditState.itemId) {
+    if (inlineEditState && displayItems[i].id === inlineEditState.itemId) {
       rows.push({
         type: 'inline-edit',
         itemId: inlineEditState.itemId,
         initialValue: inlineEditState.initialValue,
       })
     } else {
-      rows.push({ type: 'item', item: items[i] })
+      rows.push({ type: 'item', item: displayItems[i] })
     }
   }
   if (
     creationState?.mode === 'type-select' &&
     creationState.columnIndex === columnIndex &&
-    creationState.itemIndex === items.length &&
+    creationState.itemIndex === displayItems.length &&
     creationState.itemId
   ) {
     rows.push({ type: 'creation', itemId: creationState.itemId })
@@ -167,7 +192,7 @@ export function Column({
   if (
     creationState?.mode === 'directory-naming' &&
     creationState.columnIndex === columnIndex &&
-    creationState.itemIndex === items.length &&
+    creationState.itemIndex === displayItems.length &&
     creationState.itemId
   ) {
     rows.push({ type: 'directory-naming', itemId: creationState.itemId })
@@ -217,7 +242,7 @@ export function Column({
           {headerLabel}
         </span>
         <span className="text-flow-meta text-flow-textSecondary flex-shrink-0 ml-2">
-          {items.length} {items.length === 1 ? 'item' : 'items'}
+          {displayItems.length} {displayItems.length === 1 ? 'item' : 'items'}
         </span>
       </header>
       <div
@@ -225,6 +250,7 @@ export function Column({
         className="column-content flex-1 overflow-y-auto overflow-x-hidden py-2"
         onDragOver={useVirtual ? handleDragOverVirtual : handleDragOver}
         onDrop={handleDrop}
+        onScroll={usePagination && directoryId != null ? handleScroll : undefined}
       >
         {!hasRows && creationState?.mode !== 'type-select' ? (
           <p className="text-flow-meta text-flow-textSecondary px-4 py-2">No items</p>
@@ -392,6 +418,9 @@ export function Column({
               />
             )
           })
+        )}
+        {usePagination && loadingMore && (
+          <div className="text-flow-meta text-flow-textSecondary px-4 py-2">Loading...</div>
         )}
       </div>
     </section>

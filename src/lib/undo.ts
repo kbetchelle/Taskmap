@@ -13,7 +13,7 @@ import { useAppStore } from '../stores/appStore'
 import { useTaskStore } from '../stores/taskStore'
 import { useDirectoryStore } from '../stores/directoryStore'
 import { useFeedbackStore } from '../stores/feedbackStore'
-import { insertActionHistory } from '../api/actionHistory'
+import { insertActionHistory, loadMoreActionHistory } from '../api/actionHistory'
 
 const UNDO_EXPIRY_MS = 2 * 60 * 60 * 1000
 
@@ -50,6 +50,27 @@ export function pushUndoAndPersist(userId: string, payload: PushUndoPayload): vo
   if (useAppStore.getState().undoStack.length >= 80) {
     useFeedbackStore.getState().showInfo('Undo history is nearly full. Older actions will be removed automatically.')
   }
+}
+
+/** Load more undo history when at boundary. Returns true if more was loaded. */
+export async function loadMoreUndoHistory(userId: string): Promise<boolean> {
+  const { undoStack, undoCurrentIndex, prependUndoHistory } = useAppStore.getState()
+  if (undoCurrentIndex > 0) return false
+  const oldestLoaded = undoStack[0]
+  if (!oldestLoaded) return false
+  const beforeCreatedAt = new Date(oldestLoaded.createdAt).toISOString()
+  const rows = await loadMoreActionHistory(userId, beforeCreatedAt, 20)
+  if (rows.length === 0) return false
+  const items: ActionHistoryItem[] = rows.map((r) => ({
+    id: r.id,
+    actionType: r.action_type,
+    entityType: r.entity_type,
+    entityData: r.entity_data,
+    createdAt: new Date(r.created_at).getTime(),
+    expiresAt: new Date(r.expires_at).getTime(),
+  }))
+  prependUndoHistory(items)
+  return true
 }
 
 /** Perform undo for the given action; call popUndo first to get the action. */

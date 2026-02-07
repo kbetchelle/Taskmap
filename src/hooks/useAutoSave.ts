@@ -19,7 +19,7 @@ interface UseAutoSaveOptions<T> {
 export function useAutoSave<T>({
   value,
   onSave,
-  debounceMs = 800,
+  debounceMs = 1000,
   onError,
   enabled = true,
 }: UseAutoSaveOptions<T>) {

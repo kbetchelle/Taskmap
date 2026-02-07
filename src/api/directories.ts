@@ -1,5 +1,9 @@
 import { supabase } from '../lib/supabase'
 import type { Directory, Task } from '../types'
+import {
+  saveDirectoryWithConflictCheck,
+  type SaveDirectoryResult,
+} from './conflictResolution'
 
 export async function getDirectoryPath(directoryId: string): Promise<string[]> {
   const { data, error } = await supabase.rpc('get_directory_path', {
@@ -67,6 +71,16 @@ export async function updateDirectory(
     .single()
   if (error) throw error
   return data as Directory
+}
+
+/** Update directory with conflict check. Use for normal saves. */
+export async function updateDirectoryWithConflictCheck(
+  dirId: string,
+  updates: Partial<Pick<Directory, 'name' | 'parent_id' | 'start_date' | 'due_date' | 'position' | 'depth_level'>>,
+  currentDirectory: Directory
+): Promise<SaveDirectoryResult> {
+  const version = currentDirectory.version ?? 1
+  return saveDirectoryWithConflictCheck(dirId, updates, version, currentDirectory)
 }
 
 export async function deleteDirectory(id: string): Promise<void> {

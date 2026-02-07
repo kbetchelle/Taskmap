@@ -1,41 +1,34 @@
-import { useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabase'
+import { useEffect } from 'react'
 import { useAuthStore } from '../stores/authStore'
+import { useAppStore } from '../stores/appStore'
 import { useDirectoryStore } from '../stores/directoryStore'
 import { useTaskStore } from '../stores/taskStore'
+import { getSubscriptionManager } from '../lib/subscriptionManager'
 
 export function useRealtimeSubscriptions() {
   const userId = useAuthStore((s) => s.user?.id)
+  const navigationPath = useAppStore((s) => s.navigationPath)
+  const currentView = useAppStore((s) => s.currentView)
   const fetchDirectories = useDirectoryStore((s) => s.fetchDirectories)
   const fetchTasksByUser = useTaskStore((s) => s.fetchTasksByUser)
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   useEffect(() => {
     if (!userId) return
 
-    const channel = supabase
-      .channel('taskmap-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'directories', filter: `user_id=eq.${userId}` },
-        () => {
-          fetchDirectories(userId)
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${userId}` },
-        () => {
-          fetchTasksByUser(userId)
-        }
-      )
-      .subscribe()
+    const manager = getSubscriptionManager()
+    manager.setCallbacks({
+      onDirectoriesChange: () => fetchDirectories(userId),
+      onTasksChange: () => fetchTasksByUser(userId),
+    })
 
-    channelRef.current = channel
+    if (currentView === 'main_db' || currentView === 'upcoming') {
+      manager.subscribeToView(currentView, [null, ...navigationPath])
+    } else {
+      manager.unsubscribeAll()
+    }
 
     return () => {
-      supabase.removeChannel(channel)
-      channelRef.current = null
+      manager.unsubscribeAll()
     }
-  }, [userId, fetchDirectories, fetchTasksByUser])
+  }, [userId, navigationPath, currentView, fetchDirectories, fetchTasksByUser])
 }
