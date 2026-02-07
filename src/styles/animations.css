@@ -1,0 +1,131 @@
+/* Flow Phase 2: column and task animations, focus, scroll */
+
+/* Column enter/exit */
+.column-enter {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.column-enter-active {
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.column-exit {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.column-exit-active {
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Task completion */
+.task-complete {
+  animation: completeTask 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes completeTask {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-move-to-bottom {
+  transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus indicator (keyboard-first, no hover) */
+.item-focused {
+  outline: 2px solid #007AFF;
+  outline-offset: -2px;
+  transition: outline 150ms ease-in-out;
+}
+
+/* Smooth scroll */
+.column-content,
+.columns-container {
+  scroll-behavior: smooth;
+}
+
+.column-content {
+  scroll-padding: 8px;
+}
+
+/* Drag and drop */
+.dragging {
+  opacity: 0.5;
+}
+
+/* Phase 4: inline error and shake */
+.error-shake {
+  animation: shake 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.inline-error {
+  position: absolute;
+  bottom: -24px;
+  left: 0;
+  right: 0;
+  padding: 4px 8px;
+  background-color: #ff3b30;
+  color: white;
+  font-size: 11px;
+  border-radius: 4px;
+  animation: errorFadeIn 200ms ease-out;
+  z-index: 10;
+}
+
+@keyframes errorFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Type selector cursor blink (530ms like cursor) */
+.animate-blink {
+  animation: blink 1060ms step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}

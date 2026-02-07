@@ -1,0 +1,98 @@
+// TypeScript types matching DB schema
+
+export type TaskPriority = 'LOW' | 'MED' | 'HIGH';
+
+export type ActionType = 'create' | 'update' | 'delete' | 'move' | 'complete';
+export type EntityType = 'task' | 'directory';
+
+export interface Directory {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  start_date: string | null;
+  due_date: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  depth_level: number;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  directory_id: string;
+  priority: TaskPriority | null;
+  start_date: string | null;
+  due_date: string | null;
+  background_color: string | null;
+  category: string | null;
+  tags: string[];
+  description: string | null;
+  is_completed: boolean;
+  completed_at: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
+export interface TaskAttachment {
+  id: string;
+  task_id: string;
+  file_path: string;
+  file_name: string;
+  file_type: string | null;
+  file_size?: number | null;
+  storage_url: string | null;
+  created_at: string;
+  user_id: string;
+}
+
+export interface SavedViewRow {
+  id: string;
+  name: string;
+  filters: Record<string, unknown>;
+  colorMode: 'none' | 'category' | 'priority';
+  shortcut: string;
+  createdAt: number;
+}
+
+export interface UserSettings {
+  user_id: string;
+  default_view: string;
+  priority_high_color: string | null;
+  priority_med_color: string | null;
+  category_colors: Record<string, string> | null;
+  category_names?: Record<string, string> | null;
+  background_color_palette: string[] | null;
+  week_start_day: 'sunday' | 'monday';
+  saved_views?: SavedViewRow[] | null;
+  skip_starter_structure: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActionHistory {
+  id: string;
+  user_id: string;
+  action_type: ActionType;
+  entity_type: EntityType;
+  entity_data: Record<string, unknown> | null;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface ActiveItemRow {
+  kind: 'directory' | 'task';
+  id: string;
+  name: string;
+  parent_id: string | null;
+  directory_id: string | null;
+  start_date: string | null;
+  position: number;
+  depth_level: number | null;
+  priority: TaskPriority | null;
+  due_date: string | null;
+  is_completed: boolean | null;
+}
