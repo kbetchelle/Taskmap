@@ -7,7 +7,9 @@ import {
   validatePriority,
   validateCategory,
   parseDateInput,
+  parseDateInputWithConfidence,
 } from '../../lib/validation'
+import { DateInputField } from '../DateInputField'
 
 const TASK_EDIT_FIELDS = [
   'title',
@@ -81,6 +83,18 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
     const categoryResult = validateCategory(category)
     const categoryVal: string | null = categoryResult.valid && categoryResult.value ? categoryResult.value : null
 
+    const startParsed = parseDateInputWithConfidence(startDate)
+    const dueParsed = parseDateInputWithConfidence(dueDate)
+    if (startDate.trim() !== '' && startParsed.confidence === 'low') {
+      setFieldIndex(2)
+      setTimeout(() => fieldRefs.current[2]?.focus(), 0)
+      return
+    }
+    if (dueDate.trim() !== '' && dueParsed.confidence === 'low') {
+      setFieldIndex(3)
+      setTimeout(() => fieldRefs.current[3]?.focus(), 0)
+      return
+    }
     const startDateParsed = parseDateInput(startDate)
     const dueDateParsed = parseDateInput(dueDate)
     const tagsArr = tags
@@ -180,30 +194,22 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
             data-keyboard-ignore
           />
         </div>
-        <div>
-          <label className="block text-flow-meta text-flow-textSecondary mb-1">Start Date</label>
-          <input
-            ref={(el) => (fieldRefs.current[2] = el)}
-            type="text"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
-            data-keyboard-ignore
-          />
-        </div>
-        <div>
-          <label className="block text-flow-meta text-flow-textSecondary mb-1">Due Date</label>
-          <input
-            ref={(el) => (fieldRefs.current[3] = el)}
-            type="text"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
-            data-keyboard-ignore
-          />
-        </div>
+        <DateInputField
+          label="Start Date"
+          value={startDate}
+          onChange={setStartDate}
+          onKeyDown={handleKeyDown}
+          inputRefCallback={(el) => (fieldRefs.current[2] = el)}
+          placeholder="e.g., tomorrow, next friday, 02/14/26"
+        />
+        <DateInputField
+          label="Due Date"
+          value={dueDate}
+          onChange={setDueDate}
+          onKeyDown={handleKeyDown}
+          inputRefCallback={(el) => (fieldRefs.current[3] = el)}
+          placeholder="e.g., tomorrow, next friday, 02/14/26"
+        />
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Category</label>
           <select

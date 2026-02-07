@@ -2,6 +2,51 @@
 
 import type { TaskPriority } from '../../types'
 import { PRESET_CATEGORIES } from '../constants'
+import { formatDate } from '../utils'
+
+export interface ParsedDate {
+  date: Date | null
+  confidence: 'high' | 'medium' | 'low'
+  interpretation: string
+  alternativeInterpretations?: Array<{ date: Date; interpretation: string }>
+}
+
+function getDayOfWeek(day: string): number | null {
+  const days: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  }
+  return days[day] ?? null
+}
+
+function getNextWeekday(targetDay: number, skipToNextWeek = false): Date {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const currentDay = today.getDay()
+  let daysAhead = targetDay - currentDay
+  if (daysAhead <= 0 || skipToNextWeek) {
+    daysAhead += 7
+  }
+  const result = new Date(today)
+  result.setDate(today.getDate() + daysAhead)
+  return result
+}
+
+function parseMmDdYy(input: string): Date {
+  const match = input.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/)
+  if (!match) {
+    return new Date(NaN)
+  }
+  const [, month, day, year] = match
+  const fullYear = year!.length === 2 ? `20${year}` : year!
+  const d = new Date(`${fullYear}-${month!.padStart(2, '0')}-${day!.padStart(2, '0')}`)
+  return d
+}
 
 const MIN_NAME_LENGTH = 3
 const MIN_TITLE_LENGTH = 3
@@ -91,21 +136,104 @@ export function parseNaturalDate(input: string, refDate: Date = new Date()): Dat
   return parsed
 }
 
-/** Parse date input: natural language (within 13 days) or mm/dd/yy. */
-export function parseDateInput(input: string, refDate: Date = new Date()): Date | null {
+/** Parse date input with confidence and interpretations (for UI preview). */
+export function parseDateInputWithConfidence(input: string): ParsedDate {
+  if (!input) {
+    return { date: null, confidence: 'high', interpretation: '' }
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const trimmed = input.trim()
+  const normalizedInput = trimmed.toLowerCase()
+
+  // High confidence: ISO date YYYY-MM-DD (used by formatDateForInput and when confirming a selection)
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch
+    const year = parseInt(y!, 10)
+    const month = parseInt(m!, 10) - 1
+    const day = parseInt(d!, 10)
+    const date = new Date(year, month, day)
+    if (!isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+      return {
+        date,
+        confidence: 'high',
+        interpretation: formatDate(date),
+      }
+    }
+  }
+
+  // High confidence: absolute dates mm/dd/yy
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(trimmed)) {
+    const date = parseMmDdYy(trimmed)
+    if (!isNaN(date.getTime())) {
+      return {
+        date,
+        confidence: 'high',
+        interpretation: formatDate(date),
+      }
+    }
+  }
+
+  // High confidence: unambiguous relative dates
+  if (normalizedInput === 'today') {
+    return { date: today, confidence: 'high', interpretation: 'Today' }
+  }
+  if (normalizedInput === 'tomorrow') {
+    const tomorrow = new Date(today)
+    tomorrow.setDate(today.getDate() + 1)
+    return { date: tomorrow, confidence: 'high', interpretation: 'Tomorrow' }
+  }
+
+  // Medium confidence: ambiguous relative dates (bare weekday)
+  const dayOfWeek = getDayOfWeek(normalizedInput)
+  if (dayOfWeek !== null) {
+    const thisWeek = getNextWeekday(dayOfWeek)
+    const nextWeek = getNextWeekday(dayOfWeek, true)
+    const dayLabel = normalizedInput.charAt(0).toUpperCase() + normalizedInput.slice(1)
+    return {
+      date: thisWeek,
+      confidence: 'medium',
+      interpretation: `This ${dayLabel} (${formatDate(thisWeek)})`,
+      alternativeInterpretations: [
+        {
+          date: nextWeek,
+          interpretation: `Next ${dayLabel} (${formatDate(nextWeek)})`,
+        },
+      ],
+    }
+  }
+
+  // Handle "next X" (weekday)
+  if (normalizedInput.startsWith('next ')) {
+    const day = normalizedInput.replace(/^next\s+/, '')
+    const dayNum = getDayOfWeek(day)
+    if (dayNum !== null) {
+      const nextWeekDate = getNextWeekday(dayNum, true)
+      const dayLabel = day.charAt(0).toUpperCase() + day.slice(1)
+      return {
+        date: nextWeekDate,
+        confidence: 'high',
+        interpretation: `Next ${dayLabel} (${formatDate(nextWeekDate)})`,
+      }
+    }
+  }
+
+  // Low confidence: couldn't parse
+  return {
+    date: null,
+    confidence: 'low',
+    interpretation: 'Could not parse date',
+  }
+}
+
+/** Parse date input: natural language (within 13 days) or mm/dd/yy. Returns Date or null for backward compatibility. */
+export function parseDateInput(input: string, _refDate?: Date): Date | null {
   const trimmed = input.trim()
   if (!trimmed) return null
-  const natural = parseNaturalDate(trimmed, refDate)
-  if (natural != null) return natural
-  const mmddyy = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/
-  const match = trimmed.match(mmddyy)
-  if (match) {
-    const [, month, day, year] = match
-    const fullYear = year.length === 2 ? `20${year}` : year
-    const d = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`)
-    return isNaN(d.getTime()) ? null : d
-  }
-  return null
+  const result = parseDateInputWithConfidence(input)
+  return result.date
 }
 
 /** Validate priority enum. */

@@ -7,7 +7,9 @@ import {
   validatePriority,
   validateCategory,
   parseDateInput,
+  parseDateInputWithConfidence,
 } from '../../lib/validation'
+import { DateInputField } from '../DateInputField'
 
 const TASK_CREATION_FIELDS = [
   'title',
@@ -95,6 +97,22 @@ export function TaskCreationPanel({
     const categoryResult = validateCategory(metadata.category)
     const category: string | null = categoryResult.valid && categoryResult.value ? categoryResult.value : null
 
+    const startDateStr = (metadata.start_date ?? '').trim()
+    const dueDateStr = (metadata.due_date ?? '').trim()
+    const startParsed = parseDateInputWithConfidence(metadata.start_date ?? '')
+    const dueParsed = parseDateInputWithConfidence(metadata.due_date ?? '')
+    if (startDateStr !== '' && startParsed.confidence === 'low') {
+      setErrors(new Map([['start_date', 'Could not understand that date. Try "tomorrow", "next friday", or "02/14/26".']]))
+      setFieldIndex(2)
+      setTimeout(() => fieldRefs.current[2]?.focus(), 0)
+      return
+    }
+    if (dueDateStr !== '' && dueParsed.confidence === 'low') {
+      setErrors(new Map([['due_date', 'Could not understand that date. Try "tomorrow", "next friday", or "02/14/26".']]))
+      setFieldIndex(3)
+      setTimeout(() => fieldRefs.current[3]?.focus(), 0)
+      return
+    }
     const startDate = parseDateInput(metadata.start_date ?? '')
     const dueDate = parseDateInput(metadata.due_date ?? '')
     const tags = Array.isArray(metadata.tags)
@@ -203,33 +221,23 @@ export function TaskCreationPanel({
           />
         </div>
 
-        <div>
-          <label className="block text-flow-meta text-flow-textSecondary mb-1">Start Date</label>
-          <input
-            ref={(el) => (fieldRefs.current[2] = el)}
-            type="text"
-            value={metadata.start_date ?? ''}
-            onChange={(e) => updateMetadata('start_date', e.target.value)}
-            onKeyDown={(e) => handleKeyDown(e, 'start_date')}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
-            placeholder="e.g. tomorrow or mm/dd/yy"
-            data-keyboard-ignore
-          />
-        </div>
+        <DateInputField
+          label="Start Date"
+          value={metadata.start_date ?? ''}
+          onChange={(v) => updateMetadata('start_date', v)}
+          onKeyDown={(e) => handleKeyDown(e, 'start_date')}
+          inputRefCallback={(el) => (fieldRefs.current[2] = el)}
+          placeholder="e.g., tomorrow, next friday, 02/14/26"
+        />
 
-        <div>
-          <label className="block text-flow-meta text-flow-textSecondary mb-1">Due Date</label>
-          <input
-            ref={(el) => (fieldRefs.current[3] = el)}
-            type="text"
-            value={metadata.due_date ?? ''}
-            onChange={(e) => updateMetadata('due_date', e.target.value)}
-            onKeyDown={(e) => handleKeyDown(e, 'due_date')}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
-            placeholder="e.g. next friday or mm/dd/yy"
-            data-keyboard-ignore
-          />
-        </div>
+        <DateInputField
+          label="Due Date"
+          value={metadata.due_date ?? ''}
+          onChange={(v) => updateMetadata('due_date', v)}
+          onKeyDown={(e) => handleKeyDown(e, 'due_date')}
+          inputRefCallback={(el) => (fieldRefs.current[3] = el)}
+          placeholder="e.g., tomorrow, next friday, 02/14/26"
+        />
 
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Category</label>

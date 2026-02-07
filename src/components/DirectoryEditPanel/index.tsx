@@ -1,8 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Directory } from '../../types'
 import { COLUMN_WIDTH_PX } from '../../lib/theme'
-import { validateDirectoryName } from '../../lib/validation'
-import { parseDateInput } from '../../lib/validation'
+import {
+  validateDirectoryName,
+  parseDateInput,
+  parseDateInputWithConfidence,
+} from '../../lib/validation'
+import { DateInputField } from '../DateInputField'
 
 interface DirectoryEditPanelProps {
   directory: Directory
@@ -43,6 +47,10 @@ export function DirectoryEditPanel({ directory, onSave, onCancel }: DirectoryEdi
       return
     }
     setError(null)
+    const startParsed = parseDateInputWithConfidence(startDate)
+    const dueParsed = parseDateInputWithConfidence(dueDate)
+    if (startDate.trim() !== '' && startParsed.confidence === 'low') return
+    if (dueDate.trim() !== '' && dueParsed.confidence === 'low') return
     const startDateParsed = parseDateInput(startDate)
     const dueDateParsed = parseDateInput(dueDate)
     onSave(directory.id, {
@@ -95,30 +103,20 @@ export function DirectoryEditPanel({ directory, onSave, onCancel }: DirectoryEdi
           />
           {error && <p className="text-flow-error text-xs mt-1">{error}</p>}
         </div>
-        <div>
-          <label className="block text-flow-meta text-flow-textSecondary mb-1">Start Date</label>
-          <input
-            type="text"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
-            placeholder="e.g. tomorrow or mm/dd/yy"
-            data-keyboard-ignore
-          />
-        </div>
-        <div>
-          <label className="block text-flow-meta text-flow-textSecondary mb-1">Due Date</label>
-          <input
-            type="text"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
-            placeholder="e.g. next week or mm/dd/yy"
-            data-keyboard-ignore
-          />
-        </div>
+        <DateInputField
+          label="Start Date"
+          value={startDate}
+          onChange={setStartDate}
+          onKeyDown={handleKeyDown}
+          placeholder="e.g., tomorrow, next friday, 02/14/26"
+        />
+        <DateInputField
+          label="Due Date"
+          value={dueDate}
+          onChange={setDueDate}
+          onKeyDown={handleKeyDown}
+          placeholder="e.g., tomorrow, next friday, 02/14/26"
+        />
       </div>
       <footer className="flex-shrink-0 px-4 py-2 border-t border-flow-columnBorder text-flow-meta text-flow-textSecondary text-xs">
         Enter to save • Esc to cancel
