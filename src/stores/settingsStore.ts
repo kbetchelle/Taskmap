@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { UserSettings } from '../types'
 import * as api from '../api/userSettings'
 import { useAppStore } from './appStore'
+import { useShortcutStore } from '../lib/shortcutManager'
 import { rowToSavedView } from '../lib/savedViews'
 import { applySettingsToUI } from '../lib/applySettingsToUI'
 
@@ -28,6 +29,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     }
     set({ settings })
     applySettingsToUI(settings)
+    useShortcutStore.getState().loadCustomMappings(settings?.custom_shortcuts ?? null)
     if (settings?.saved_views?.length) {
       const views = settings.saved_views.map(rowToSavedView)
       useAppStore.getState().setSavedViews(Object.fromEntries(views.map((v) => [v.id, v])))

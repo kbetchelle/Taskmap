@@ -73,6 +73,7 @@ export interface UserSettings {
   week_start_day: 'sunday' | 'monday';
   saved_views?: SavedViewRow[] | null;
   skip_starter_structure: boolean;
+  custom_shortcuts?: Record<string, string> | null;
   created_at: string;
   updated_at: string;
 }

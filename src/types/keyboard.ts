@@ -27,4 +27,6 @@ export interface KeyboardShortcut {
   context: KeyboardContext | 'global'
   description: string
   category: ShortcutCategory
+  /** Action ID for ShortcutManager lookup (when remappable) */
+  action?: string
 }

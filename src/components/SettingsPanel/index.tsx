@@ -8,6 +8,7 @@ import { useKeyboard } from '../../hooks/useKeyboard'
 import { Button } from '../ui/Button'
 import { SettingsSection } from './SettingsSection'
 import { SettingField } from './SettingField'
+import { ShortcutCustomization } from '../ShortcutCustomization'
 import { ColorPicker } from './ColorPicker'
 import { SettingsSelect } from './SettingsSelect'
 import { SettingsInput } from './SettingsInput'
@@ -65,6 +66,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   )
   const [hasChanges, setHasChanges] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [shortcutCustomizationOpen, setShortcutCustomizationOpen] = useState(false)
 
   const updateSetting = useCallback(<K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }))
@@ -254,6 +256,22 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           ))}
         </SettingsSection>
 
+        <SettingsSection title="Keyboard Shortcuts">
+          <SettingField
+            label="Customize Shortcuts"
+            description="Remap keyboard shortcuts to your preference"
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              className="border border-flow-columnBorder"
+              onClick={() => setShortcutCustomizationOpen(true)}
+            >
+              Customize Shortcuts
+            </Button>
+          </SettingField>
+        </SettingsSection>
+
         <SettingsSection title="Import/Export">
           <div className="flex gap-2">
             <Button
@@ -306,6 +324,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </Button>
         </div>
       </div>
+
+      {shortcutCustomizationOpen && (
+        <ShortcutCustomization
+          open={shortcutCustomizationOpen}
+          onClose={() => setShortcutCustomizationOpen(false)}
+        />
+      )}
     </div>
   )
 }

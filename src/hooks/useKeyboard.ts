@@ -1,6 +1,11 @@
 import { useEffect, useCallback } from 'react'
-import { SHORTCUTS } from '../lib/constants'
+import { matchShortcut } from '../lib/keyboardUtils'
+import { useShortcutStore } from '../lib/shortcutManager'
 import { useAppStore } from '../stores/appStore'
+
+function getShortcut(action: string): string {
+  return useShortcutStore.getState().getShortcut(action)
+}
 
 type ShortcutHandler = () => void
 
@@ -63,37 +68,6 @@ interface UseKeyboardOptions {
   onSettingsSave?: ShortcutHandler
   onSettingsClose?: ShortcutHandler
   enabled?: boolean
-}
-
-function parseShortcut(shortcut: string): { key: string; meta: boolean; shift?: boolean; alt?: boolean } {
-  const parts = shortcut.toLowerCase().split('+')
-  const meta = parts.includes('mod') || parts.includes('meta') || parts.includes('ctrl')
-  const shift = parts.includes('shift')
-  const alt = parts.includes('alt')
-  const key = parts.find((p) => !['mod', 'meta', 'ctrl', 'shift', 'alt'].includes(p)) ?? ''
-  return { key, meta, shift, alt }
-}
-
-function matchShortcut(e: KeyboardEvent, shortcut: string): boolean {
-  const { key, meta, shift, alt } = parseShortcut(shortcut)
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
-  const metaKey = isMac ? e.metaKey : e.ctrlKey
-  const keyNorm =
-    key === 'arrowleft'
-      ? 'arrowleft'
-      : key === 'arrowright'
-        ? 'arrowright'
-        : key === 'arrowup'
-          ? 'arrowup'
-          : key === 'arrowdown'
-            ? 'arrowdown'
-            : key
-  const eKey = e.key.toLowerCase()
-  if (keyNorm !== eKey) return false
-  if (meta !== metaKey) return false
-  if (shift !== undefined && shift !== e.shiftKey) return false
-  if (alt !== undefined && alt !== e.altKey) return false
-  return true
 }
 
 function isNavigationContext(): boolean {
@@ -179,12 +153,12 @@ export function useKeyboard({
 
       // Phase 7: settings context — Enter save, Escape close
       if (isSettingsContext()) {
-        if (matchShortcut(e, SHORTCUTS.ENTER) && onSettingsSave) {
+        if (matchShortcut(e, getShortcut('enter')) && onSettingsSave) {
           e.preventDefault()
           onSettingsSave()
           return
         }
-        if (matchShortcut(e, SHORTCUTS.ESCAPE) && onSettingsClose) {
+        if (matchShortcut(e, getShortcut('escape')) && onSettingsClose) {
           e.preventDefault()
           onSettingsClose()
           return
@@ -192,7 +166,7 @@ export function useKeyboard({
       }
 
       // Phase 5: search context — Escape closes
-      if (isSearchContext() && matchShortcut(e, SHORTCUTS.ESCAPE) && onSearchClose) {
+      if (isSearchContext() && matchShortcut(e, getShortcut('escape')) && onSearchClose) {
         e.preventDefault()
         onSearchClose()
         return
@@ -225,17 +199,17 @@ export function useKeyboard({
 
       // Phase 6: editing context (expanded task panel) — Escape, Cmd+Shift+F, Cmd+Shift+O
       if (isEditingContext()) {
-        if (matchShortcut(e, SHORTCUTS.ESCAPE) && onExitEditing) {
+        if (matchShortcut(e, getShortcut('escape')) && onExitEditing) {
           e.preventDefault()
           onExitEditing()
           return
         }
-        if (matchShortcut(e, SHORTCUTS.CMD_SHIFT_F) && onAddAttachment) {
+        if (matchShortcut(e, getShortcut('cmdShiftF')) && onAddAttachment) {
           e.preventDefault()
           onAddAttachment()
           return
         }
-        if (matchShortcut(e, SHORTCUTS.CMD_SHIFT_O) && onOpenAllAttachments) {
+        if (matchShortcut(e, getShortcut('cmdShiftO')) && onOpenAllAttachments) {
           e.preventDefault()
           onOpenAllAttachments()
           return
@@ -243,220 +217,211 @@ export function useKeyboard({
       }
 
       const nav = isNavigationContext()
-      if (matchShortcut(e, SHORTCUTS.MAIN_VIEW) && onMainView) {
+      if (matchShortcut(e, getShortcut('mainView')) && onMainView) {
         e.preventDefault()
         onMainView()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.UPCOMING_VIEW) && onUpcomingView) {
+      if (matchShortcut(e, getShortcut('upcomingView')) && onUpcomingView) {
         e.preventDefault()
         onUpcomingView()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.COMMAND_PALETTE) && onCommandPalette) {
+      if (matchShortcut(e, getShortcut('commandPalette')) && onCommandPalette) {
         e.preventDefault()
         onCommandPalette()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SEARCH_OPEN) && onSearch) {
+      if (matchShortcut(e, getShortcut('searchOpen')) && onSearch) {
         e.preventDefault()
         onSearch()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.COMPLETED_TOGGLE) && onToggleShowCompleted) {
+      if (matchShortcut(e, getShortcut('completedToggle')) && onToggleShowCompleted) {
         e.preventDefault()
         onToggleShowCompleted()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SAVE_VIEW) && onSaveView) {
+      if (matchShortcut(e, getShortcut('saveView')) && onSaveView) {
         e.preventDefault()
         onSaveView()
         return
       }
       // Saved view slots Cmd+2 .. Cmd+9 (index 0..7)
       if (onLoadSavedView) {
-        const savedViewShortcuts = [
-          SHORTCUTS.SAVED_VIEW_2,
-          SHORTCUTS.SAVED_VIEW_3,
-          SHORTCUTS.SAVED_VIEW_4,
-          SHORTCUTS.SAVED_VIEW_5,
-          SHORTCUTS.SAVED_VIEW_6,
-          SHORTCUTS.SAVED_VIEW_7,
-          SHORTCUTS.SAVED_VIEW_8,
-          SHORTCUTS.SAVED_VIEW_9,
-        ]
-        for (let i = 0; i < savedViewShortcuts.length; i++) {
-          if (matchShortcut(e, savedViewShortcuts[i])) {
+        const savedViewActions = ['savedView2', 'savedView3', 'savedView4', 'savedView5', 'savedView6', 'savedView7', 'savedView8', 'savedView9']
+        for (let i = 0; i < savedViewActions.length; i++) {
+          if (matchShortcut(e, getShortcut(savedViewActions[i]))) {
             e.preventDefault()
             onLoadSavedView(i)
             return
           }
         }
       }
-      if (matchShortcut(e, SHORTCUTS.NEW_TASK) && (onInitiateCreation ?? onNewTask)) {
+      if (matchShortcut(e, getShortcut('newTask')) && (onInitiateCreation ?? onNewTask)) {
         e.preventDefault()
         ;(onInitiateCreation ?? onNewTask)!()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.NEW_DIRECTORY) && (onInitiateCreation ?? onNewDirectory)) {
+      if (matchShortcut(e, getShortcut('newDirectory')) && (onInitiateCreation ?? onNewDirectory)) {
         e.preventDefault()
         ;(onInitiateCreation ?? onNewDirectory)!()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SETTINGS) && onSettings) {
+      if (matchShortcut(e, getShortcut('settings')) && onSettings) {
         e.preventDefault()
         onSettings()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.UNDO) && onUndo) {
+      if (matchShortcut(e, getShortcut('undo')) && onUndo) {
         e.preventDefault()
         onUndo()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.REDO) && onRedo) {
+      if (matchShortcut(e, getShortcut('redo')) && onRedo) {
         e.preventDefault()
         onRedo()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SCROLL_LEFT) && onScrollLeft) {
+      if (matchShortcut(e, getShortcut('scrollLeft')) && onScrollLeft) {
         e.preventDefault()
         onScrollLeft()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SCROLL_RIGHT) && onScrollRight) {
+      if (matchShortcut(e, getShortcut('scrollRight')) && onScrollRight) {
         e.preventDefault()
         onScrollRight()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SCROLL_HOME) && onScrollHome) {
+      if (matchShortcut(e, getShortcut('scrollHome')) && onScrollHome) {
         e.preventDefault()
         onScrollHome()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SCROLL_END) && onScrollEnd) {
+      if (matchShortcut(e, getShortcut('scrollEnd')) && onScrollEnd) {
         e.preventDefault()
         onScrollEnd()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.COLOR_NONE) && onColorNone) {
+      if (matchShortcut(e, getShortcut('colorNone')) && onColorNone) {
         e.preventDefault()
         onColorNone()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.COLOR_CATEGORY) && onColorCategory) {
+      if (matchShortcut(e, getShortcut('colorCategory')) && onColorCategory) {
         e.preventDefault()
         onColorCategory()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.COLOR_PRIORITY) && onColorPriority) {
+      if (matchShortcut(e, getShortcut('colorPriority')) && onColorPriority) {
         e.preventDefault()
         onColorPriority()
         return
       }
       // Phase 3: navigation shortcuts (only in navigation context, except Cmd+/ which is global)
-      if (matchShortcut(e, SHORTCUTS.CMD_SLASH) && onCmdSlash) {
+      if (matchShortcut(e, getShortcut('cmdSlash')) && onCmdSlash) {
         e.preventDefault()
         onCmdSlash()
         return
       }
       if (!nav) return
-      if (matchShortcut(e, SHORTCUTS.ARROW_UP) && !e.shiftKey && onArrowUp) {
+      if (matchShortcut(e, getShortcut('arrowUp')) && !e.shiftKey && onArrowUp) {
         e.preventDefault()
         onArrowUp()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.ARROW_DOWN) && !e.shiftKey && onArrowDown) {
+      if (matchShortcut(e, getShortcut('arrowDown')) && !e.shiftKey && onArrowDown) {
         e.preventDefault()
         onArrowDown()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.ARROW_LEFT) && onArrowLeft) {
+      if (matchShortcut(e, getShortcut('arrowLeft')) && onArrowLeft) {
         e.preventDefault()
         onArrowLeft()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.ARROW_RIGHT) && onArrowRight) {
+      if (matchShortcut(e, getShortcut('arrowRight')) && onArrowRight) {
         e.preventDefault()
         onArrowRight()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.ENTER) && onEnter) {
+      if (matchShortcut(e, getShortcut('enter')) && onEnter) {
         e.preventDefault()
         onEnter()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.ESCAPE) && onEscape) {
+      if (matchShortcut(e, getShortcut('escape')) && onEscape) {
         e.preventDefault()
         onEscape()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SPACE) && onSpace) {
+      if (matchShortcut(e, getShortcut('space')) && onSpace) {
         e.preventDefault()
         onSpace()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SHIFT_ARROW_UP) && onShiftArrowUp) {
+      if (matchShortcut(e, getShortcut('shiftArrowUp')) && onShiftArrowUp) {
         e.preventDefault()
         onShiftArrowUp()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.SHIFT_ARROW_DOWN) && onShiftArrowDown) {
+      if (matchShortcut(e, getShortcut('shiftArrowDown')) && onShiftArrowDown) {
         e.preventDefault()
         onShiftArrowDown()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_A) && onCmdA) {
+      if (matchShortcut(e, getShortcut('cmdA')) && onCmdA) {
         e.preventDefault()
         onCmdA()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_ARROW_UP) && onCmdArrowUp) {
+      if (matchShortcut(e, getShortcut('cmdArrowUp')) && onCmdArrowUp) {
         e.preventDefault()
         onCmdArrowUp()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_ARROW_DOWN) && onCmdArrowDown) {
+      if (matchShortcut(e, getShortcut('cmdArrowDown')) && onCmdArrowDown) {
         e.preventDefault()
         onCmdArrowDown()
         return
       }
       // Phase 4: edit, delete, copy/paste/cut (navigation context)
-      if (matchShortcut(e, SHORTCUTS.OPTION_E) && onQuickEdit) {
+      if (matchShortcut(e, getShortcut('optionE')) && onQuickEdit) {
         e.preventDefault()
         onQuickEdit()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_SHIFT_E) && onFullEdit) {
+      if (matchShortcut(e, getShortcut('cmdShiftE')) && onFullEdit) {
         e.preventDefault()
         onFullEdit()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_DELETE) && onDelete) {
+      if (matchShortcut(e, getShortcut('cmdDelete')) && onDelete) {
         e.preventDefault()
         onDelete()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_C) && onCopy) {
+      if (matchShortcut(e, getShortcut('cmdC')) && onCopy) {
         e.preventDefault()
         onCopy()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_SHIFT_C) && onCopyRecursive) {
+      if (matchShortcut(e, getShortcut('cmdShiftC')) && onCopyRecursive) {
         e.preventDefault()
         onCopyRecursive()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_V) && onPaste) {
+      if (matchShortcut(e, getShortcut('cmdV')) && onPaste) {
         e.preventDefault()
         onPaste()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_SHIFT_V) && onPasteWithMetadata) {
+      if (matchShortcut(e, getShortcut('cmdShiftV')) && onPasteWithMetadata) {
         e.preventDefault()
         onPasteWithMetadata()
         return
       }
-      if (matchShortcut(e, SHORTCUTS.CMD_X) && onCut) {
+      if (matchShortcut(e, getShortcut('cmdX')) && onCut) {
         e.preventDefault()
         onCut()
         return
@@ -519,7 +484,7 @@ export function useKeyboard({
   )
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', handleKeyDown as EventListener)
+    return () => document.removeEventListener('keydown', handleKeyDown as EventListener)
   }, [handleKeyDown])
 }

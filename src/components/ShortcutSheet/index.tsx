@@ -1,9 +1,15 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../../stores/appStore'
+import { useShortcutStore } from '../../lib/shortcutManager'
+import { formatShortcutForDisplay } from '../../lib/platform'
 import { KEYBOARD_SHORTCUTS } from '../../lib/keyboardShortcuts'
 import type { KeyboardShortcut, ShortcutCategory } from '../../types/keyboard'
 
-function formatShortcut(s: { key: string; modifiers?: string }): string {
+function formatShortcutDisplay(s: KeyboardShortcut): string {
+  if (s.action) {
+    const shortcut = useShortcutStore.getState().getShortcut(s.action)
+    return formatShortcutForDisplay(shortcut || '')
+  }
   return s.modifiers ? `${s.modifiers}+${s.key}` : s.key
 }
 
@@ -20,7 +26,7 @@ function filterShortcuts(
     list = list.filter(
       (s) =>
         s.description.toLowerCase().includes(lower) ||
-        formatShortcut(s).toLowerCase().includes(lower)
+        formatShortcutDisplay(s).toLowerCase().includes(lower)
     )
   }
   return list
@@ -46,9 +52,10 @@ export function ShortcutSheet() {
     () => Array.from(new Set(KEYBOARD_SHORTCUTS.map((s) => s.category))),
     []
   )
+  const mappings = useShortcutStore((s) => s.getAllMappings())
   const filtered = useMemo(
     () => filterShortcuts(KEYBOARD_SHORTCUTS, searchQuery, selectedCategory),
-    [searchQuery, selectedCategory]
+    [searchQuery, selectedCategory, mappings]
   )
   const filteredByCategory = useMemo(() => {
     const map = new Map<string, KeyboardShortcut[]>()
@@ -152,7 +159,7 @@ export function ShortcutSheet() {
                       {shortcuts.map((s, i) => (
                         <tr key={`${s.key}-${s.modifiers ?? ''}-${i}`}>
                           <td className="py-1 pr-4 font-mono text-flow-meta text-flow-textSecondary whitespace-nowrap">
-                            {formatShortcut(s)}
+                            {formatShortcutDisplay(s)}
                           </td>
                           <td className="py-1">{s.description}</td>
                         </tr>

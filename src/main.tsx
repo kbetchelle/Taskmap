@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { installShortcutPrevention } from './lib/shortcutPrevention'
+
+installShortcutPrevention()
 
 const queryClient = new QueryClient({
   defaultOptions: {
