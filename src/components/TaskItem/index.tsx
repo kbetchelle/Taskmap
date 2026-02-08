@@ -6,6 +6,7 @@ import { getCategoryColor } from '../../lib/theme/index'
 import { getPriorityColor } from '../../lib/utils/priorityCategory'
 import { highlightSearchTerms } from '../../lib/utils'
 import { formatRecurrence } from '../../lib/recurrence'
+import { useTimeTrackerStore } from '../../stores/timeTrackerStore'
 
 interface TaskItemProps {
   task: Task
@@ -58,6 +59,7 @@ export function TaskItem({
   onExpand,
 }: TaskItemProps) {
   const settings = useSettingsStore((s) => s.settings)
+  const isTimerRunning = useTimeTrackerStore((s) => s.isTimerActive(task.id))
   const accentColor = getTaskColor(task, colorMode, settings)
 
   return (
@@ -122,6 +124,15 @@ export function TaskItem({
           aria-label={formatRecurrence(task.recurrence_pattern)}
         >
           &#x1F504;
+        </span>
+      )}
+      {isTimerRunning && (
+        <span
+          className="timer-running-indicator flex-shrink-0 ml-1 text-flow-meta text-flow-textSecondary"
+          title="Timer running"
+          aria-label="Timer running"
+        >
+          &#x23F1;
         </span>
       )}
     </ListItem>

@@ -36,12 +36,14 @@ interface TaskState {
         | 'recurrence_parent_id'
         | 'recurrence_series_id'
         | 'is_recurrence_template'
+        | 'estimated_duration_minutes'
       >
     >
   ) => Promise<void>
   removeTask: (id: string) => Promise<void>
   archiveTask: (id: string, reason: 'completed' | 'user_deleted' | 'auto_archived') => Promise<void>
   unarchiveTask: (id: string) => Promise<Task>
+  patchTaskActualDuration: (id: string, minutes: number) => void
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -109,6 +111,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         recurrence_parent_id: merged.recurrence_parent_id,
         recurrence_series_id: merged.recurrence_series_id,
         is_recurrence_template: merged.is_recurrence_template,
+        estimated_duration_minutes: merged.estimated_duration_minutes,
       }
       const updated = await api.updateTask(id, mergedUpdates)
       set({
@@ -139,6 +142,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         recurrence_parent_id: resolved.recurrence_parent_id,
         recurrence_series_id: resolved.recurrence_series_id,
         is_recurrence_template: resolved.is_recurrence_template,
+        estimated_duration_minutes: resolved.estimated_duration_minutes,
       }
       const updated = await api.updateTask(id, resolvedUpdates)
       set({
@@ -163,5 +167,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       tasks: get().tasks.filter((t) => t.id !== updated.id).concat(updated),
     })
     return updated
+  },
+  patchTaskActualDuration: (id, minutes) => {
+    set({
+      tasks: get().tasks.map((t) =>
+        t.id === id ? { ...t, actual_duration_minutes: minutes } : t
+      ),
+    })
   },
 }))

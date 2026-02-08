@@ -11,6 +11,7 @@ import {
   formatFileSize,
 } from '../../lib/utils/dateFormat'
 import { formatRecurrence } from '../../lib/recurrence'
+import { TimeTrackingSection } from '../TimeTrackingSection'
 import {
   formatPriority,
   getPriorityIcon,
@@ -223,6 +224,7 @@ export interface ExpandedTaskPanelProps {
   onEdit: () => void
   onAddAttachmentRef?: (trigger: () => void) => void
   onOpenAllAttachmentsRef?: (trigger: () => void) => void
+  onTaskUpdated?: (updates: { actual_duration_minutes: number }) => void
 }
 
 export function ExpandedTaskPanel({
@@ -231,6 +233,7 @@ export function ExpandedTaskPanel({
   onEdit,
   onAddAttachmentRef,
   onOpenAllAttachmentsRef,
+  onTaskUpdated,
 }: ExpandedTaskPanelProps) {
   const { userId } = useAppContext()
   const [locationPath, setLocationPath] = useState<string[]>([])
@@ -493,6 +496,8 @@ export function ExpandedTaskPanel({
               onAttachmentsLoaded={setAttachments}
             />
           </div>
+
+          <TimeTrackingSection task={task} onTaskUpdated={onTaskUpdated} />
 
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">Location</h3>

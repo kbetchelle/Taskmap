@@ -18,6 +18,7 @@ const TASK_EDIT_FIELDS = [
   'start_date',
   'due_date',
   'recurrence',
+  'estimated_duration',
   'category',
   'tags',
   'background',
@@ -60,6 +61,9 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
   const [description, setDescription] = useState(task.description ?? '')
   const [recurrence, setRecurrence] = useState<RecurrencePattern | null>(
     task.recurrence_pattern ?? null
+  )
+  const [estimatedDurationMinutes, setEstimatedDurationMinutes] = useState(
+    task.estimated_duration_minutes ?? 0
   )
   const [error, setError] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null) as React.MutableRefObject<HTMLInputElement | null>
@@ -136,6 +140,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
       tags: tagsArr,
       background_color,
       description: description.trim() || null,
+      estimated_duration_minutes: estimatedDurationMinutes > 0 ? estimatedDurationMinutes : null,
       ...recurrenceUpdates,
     })
   }, [
@@ -152,6 +157,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
     task.recurrence_parent_id,
     task.recurrence_series_id,
     task.is_recurrence_template,
+    estimatedDurationMinutes,
     onSave,
   ])
 
@@ -240,9 +246,44 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
           <RecurrenceField value={recurrence} onChange={setRecurrence} />
         </div>
         <div>
+          <label className="block text-flow-meta text-flow-textSecondary mb-1">Estimated Duration</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={(el) => (fieldRefs.current[5] = el)}
+              type="number"
+              min={0}
+              placeholder="0"
+              value={Math.floor(estimatedDurationMinutes / 60) || ''}
+              onChange={(e) => {
+                const h = parseInt(e.target.value, 10) || 0
+                setEstimatedDurationMinutes(h * 60 + (estimatedDurationMinutes % 60))
+              }}
+              onKeyDown={handleKeyDown}
+              className="w-16 rounded border border-neutral-300 px-2 py-1.5 text-sm"
+              data-keyboard-ignore
+            />
+            <span className="text-flow-textSecondary text-sm">hours</span>
+            <input
+              type="number"
+              min={0}
+              max={59}
+              placeholder="0"
+              value={estimatedDurationMinutes % 60 || ''}
+              onChange={(e) => {
+                const m = parseInt(e.target.value, 10) || 0
+                setEstimatedDurationMinutes(Math.floor(estimatedDurationMinutes / 60) * 60 + m)
+              }}
+              onKeyDown={handleKeyDown}
+              className="w-16 rounded border border-neutral-300 px-2 py-1.5 text-sm"
+              data-keyboard-ignore
+            />
+            <span className="text-flow-textSecondary text-sm">minutes</span>
+          </div>
+        </div>
+        <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Category</label>
           <select
-            ref={(el) => (fieldRefs.current[5] = el)}
+            ref={(el) => (fieldRefs.current[6] = el)}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             onKeyDown={handleKeyDown as unknown as React.KeyboardEventHandler<HTMLSelectElement>}
@@ -260,7 +301,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Tags</label>
           <input
-            ref={(el) => (fieldRefs.current[6] = el)}
+            ref={(el) => (fieldRefs.current[7] = el)}
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
@@ -272,7 +313,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Background (1–6)</label>
           <input
-            ref={(el) => (fieldRefs.current[7] = el)}
+            ref={(el) => (fieldRefs.current[8] = el)}
             type="text"
             value={background}
             onChange={(e) => setBackground(e.target.value)}
@@ -284,7 +325,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Description</label>
           <textarea
-            ref={(el) => (fieldRefs.current[8] = el)}
+            ref={(el) => (fieldRefs.current[9] = el)}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             onKeyDown={handleKeyDown}

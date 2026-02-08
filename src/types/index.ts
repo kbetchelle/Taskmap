@@ -4,6 +4,7 @@ export type {
   EntityType,
   RecurrencePattern,
   RecurringTask,
+  TimeEntry,
   Directory,
   Task,
   TaskAttachment,

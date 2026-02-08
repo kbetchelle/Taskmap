@@ -55,9 +55,21 @@ export interface Task {
   recurrence_parent_id?: string | null;
   recurrence_series_id?: string | null;
   is_recurrence_template?: boolean;
+  estimated_duration_minutes?: number | null;
+  actual_duration_minutes?: number;
 }
 
 export type RecurringTask = Task & { recurrence_pattern: RecurrencePattern };
+
+export interface TimeEntry {
+  id: string;
+  task_id: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_minutes: number | null;
+  user_id: string;
+  created_at: string;
+}
 
 export interface TaskAttachment {
   id: string;

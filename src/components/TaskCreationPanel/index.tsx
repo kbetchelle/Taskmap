@@ -18,6 +18,7 @@ const TASK_CREATION_FIELDS = [
   'start_date',
   'due_date',
   'recurrence',
+  'estimated_duration',
   'category',
   'tags',
   'background',
@@ -32,6 +33,7 @@ export interface TaskCreationMetadata {
   start_date?: string
   due_date?: string
   recurrence?: RecurrencePattern | null
+  estimated_duration?: number
   category?: string
   tags?: string[]
   background?: string
@@ -75,7 +77,7 @@ export function TaskCreationPanel({
   }, [])
 
   const updateMetadata = useCallback(
-    (key: TaskCreationField, value: string | string[] | RecurrencePattern | null | undefined) => {
+    (key: TaskCreationField, value: string | string[] | RecurrencePattern | number | null | undefined) => {
       setMetadata((prev) => ({ ...prev, [key]: value }))
       setErrors((prev) => {
         const next = new Map(prev)
@@ -135,6 +137,7 @@ export function TaskCreationPanel({
         : null
 
     const recurrence = metadata.recurrence ?? null
+    const estimatedMinutes = metadata.estimated_duration ?? 0
     const task: Omit<Task, 'created_at' | 'updated_at'> = {
       id: itemId,
       title,
@@ -165,6 +168,7 @@ export function TaskCreationPanel({
             recurrence_series_id: null,
             is_recurrence_template: false,
           }),
+      estimated_duration_minutes: estimatedMinutes > 0 ? estimatedMinutes : null,
     }
     onSave(task)
   }, [metadata, itemId, directoryId, position, userId, onSave])
@@ -270,9 +274,47 @@ export function TaskCreationPanel({
         </div>
 
         <div>
+          <label className="block text-flow-meta text-flow-textSecondary mb-1">Estimated Duration</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={(el) => (fieldRefs.current[5] = el)}
+              type="number"
+              min={0}
+              placeholder="0"
+              value={Math.floor((metadata.estimated_duration ?? 0) / 60) || ''}
+              onKeyDown={(e) => handleKeyDown(e, 'estimated_duration')}
+              onChange={(e) => {
+                const h = parseInt(e.target.value, 10) || 0
+                const m = (metadata.estimated_duration ?? 0) % 60
+                updateMetadata('estimated_duration', h * 60 + m)
+              }}
+              className="w-16 rounded border border-neutral-300 px-2 py-1.5 text-sm"
+              data-keyboard-ignore
+            />
+            <span className="text-flow-textSecondary text-sm">hours</span>
+            <input
+              type="number"
+              min={0}
+              max={59}
+              placeholder="0"
+              value={(metadata.estimated_duration ?? 0) % 60 || ''}
+              onKeyDown={(e) => handleKeyDown(e, 'estimated_duration')}
+              onChange={(e) => {
+                const m = parseInt(e.target.value, 10) || 0
+                const h = Math.floor((metadata.estimated_duration ?? 0) / 60)
+                updateMetadata('estimated_duration', h * 60 + m)
+              }}
+              className="w-16 rounded border border-neutral-300 px-2 py-1.5 text-sm"
+              data-keyboard-ignore
+            />
+            <span className="text-flow-textSecondary text-sm">minutes</span>
+          </div>
+        </div>
+
+        <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Category</label>
           <select
-            ref={(el) => (fieldRefs.current[5] = el)}
+            ref={(el) => (fieldRefs.current[6] = el)}
             value={metadata.category ?? ''}
             onChange={(e) => updateMetadata('category', e.target.value)}
             onKeyDown={(e) => handleKeyDown(e as unknown as React.KeyboardEvent, 'category')}
@@ -291,7 +333,7 @@ export function TaskCreationPanel({
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Tags</label>
           <input
-            ref={(el) => (fieldRefs.current[6] = el)}
+            ref={(el) => (fieldRefs.current[7] = el)}
             type="text"
             value={Array.isArray(metadata.tags) ? metadata.tags.join(', ') : (metadata.tags ?? '')}
             onChange={(e) => updateMetadata('tags', e.target.value)}
@@ -305,7 +347,7 @@ export function TaskCreationPanel({
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Background (1–6)</label>
           <input
-            ref={(el) => (fieldRefs.current[7] = el)}
+            ref={(el) => (fieldRefs.current[8] = el)}
             type="text"
             value={metadata.background ?? ''}
             onChange={(e) => updateMetadata('background', e.target.value)}
@@ -319,7 +361,7 @@ export function TaskCreationPanel({
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Description</label>
           <textarea
-            ref={(el) => (fieldRefs.current[8] = el)}
+            ref={(el) => (fieldRefs.current[9] = el)}
             value={metadata.description ?? ''}
             onChange={(e) => updateMetadata('description', e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, 'description')}

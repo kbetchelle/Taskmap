@@ -58,6 +58,8 @@ export async function insertTask(
     updated_at: now,
     archived_at: null,
     archive_reason: null,
+    estimated_duration_minutes: task.estimated_duration_minutes ?? null,
+    actual_duration_minutes: task.actual_duration_minutes ?? 0,
   }
   const { data, error } = await supabase
     .from('tasks')
@@ -70,7 +72,7 @@ export async function insertTask(
 
 export async function updateTask(
   id: string,
-  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'archived_at' | 'archive_reason' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template'>>
+  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'archived_at' | 'archive_reason' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'actual_duration_minutes'>>
 ): Promise<Task> {
   const { data, error } = await supabase
     .from('tasks')
@@ -85,7 +87,7 @@ export async function updateTask(
 /** Update task with conflict check. Use for normal saves. */
 export async function updateTaskWithConflictCheck(
   taskId: string,
-  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template'>>,
+  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes'>>,
   currentTask: Task
 ): Promise<SaveTaskResult> {
   const version = currentTask.version ?? 1
@@ -215,6 +217,15 @@ export async function fetchArchivedTasks(
 export async function permanentlyDeleteTasks(ids: string[]): Promise<void> {
   if (ids.length === 0) return
   const { error } = await supabase.from('tasks').delete().in('id', ids)
+  if (error) throw error
+}
+
+/** Lightweight update for time-tracking aggregation; bypasses conflict check. */
+export async function updateTaskActualDuration(id: string, minutes: number): Promise<void> {
+  const { error } = await supabase
+    .from('tasks')
+    .update({ actual_duration_minutes: minutes })
+    .eq('id', id)
   if (error) throw error
 }
 

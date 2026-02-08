@@ -96,6 +96,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const updateTask = useTaskStore((s) => s.updateTask)
   const removeTask = useTaskStore((s) => s.removeTask)
   const archiveTask = useTaskStore((s) => s.archiveTask)
+  const patchTaskActualDuration = useTaskStore((s) => s.patchTaskActualDuration)
   const selectedItemIds = useAppStore((s) => s.selectedItems)
   const pushNavigation = useAppStore((s) => s.pushNavigation)
   const popNavigation = useAppStore((s) => s.popNavigation)
@@ -1537,6 +1538,9 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
             }}
             onOpenAllAttachmentsRef={(trigger) => {
               openAllAttachmentsTriggerRef.current = trigger
+            }}
+            onTaskUpdated={(updates) => {
+              patchTaskActualDuration(expandedTask.id, updates.actual_duration_minutes)
             }}
           />
         ) : null
