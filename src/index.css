@@ -127,3 +127,93 @@
   font-size: 12px;
   color: #C62828;
 }
+
+/* Mobile-responsive: larger touch targets, bottom sheet */
+@media (max-width: 768px) {
+  .mobile-columns-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .mobile-breadcrumb {
+    flex-shrink: 0;
+  }
+
+  .mobile-column {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .mobile-actions {
+    flex-shrink: 0;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-bottom-sheet-overlay {
+    display: none;
+  }
+}
+
+/* Mobile bottom sheet (used when expandedTaskId on mobile) */
+.mobile-bottom-sheet-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.mobile-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #FFFFFF;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: mobileSheetSlideUp 300ms ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 250ms ease-out;
+}
+
+@keyframes mobileSheetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background-color: #E5E5E5;
+  border-radius: 2px;
+  margin: 12px auto;
+  cursor: grab;
+}
+
+.sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+}

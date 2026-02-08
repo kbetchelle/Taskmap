@@ -1,6 +1,9 @@
+import { useRef } from 'react'
 import type { Task, UserSettings } from '../../types'
 import type { ColorMode } from '../../types/state'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useTouchGestures } from '../../hooks/useTouchGestures'
+import { useUIStore } from '../../stores/uiStore'
 import { ListItem } from '../ListItem'
 import { getCategoryColor } from '../../lib/theme/index'
 import { getPriorityColor } from '../../lib/utils/priorityCategory'
@@ -24,6 +27,9 @@ interface TaskItemProps {
   onDragEnd?: (e: React.DragEvent) => void
   onSelect: (event?: React.MouseEvent) => void
   onExpand: () => void
+  onSwipeRight?: () => void
+  onSwipeLeft?: () => void
+  onLongPress?: (clientX: number, clientY: number) => void
 }
 
 function getTaskColor(
@@ -58,13 +64,28 @@ export function TaskItem({
   onDragEnd,
   onSelect,
   onExpand,
+  onSwipeRight,
+  onSwipeLeft,
+  onLongPress,
 }: TaskItemProps) {
   const settings = useSettingsStore((s) => s.settings)
   const isTimerRunning = useTimeTrackerStore((s) => s.isTimerActive(task.id))
   const accentColor = getTaskColor(task, colorMode, settings)
+  const listItemRef = useRef<HTMLDivElement>(null)
+
+  useTouchGestures(
+    listItemRef as React.RefObject<HTMLElement | null>,
+    {
+      onSwipeRight: onSwipeRight ?? undefined,
+      onSwipeLeft: onSwipeLeft ?? undefined,
+      onLongPress: onLongPress ?? undefined,
+    },
+    useUIStore((s) => s.mobileMode) && (onSwipeRight != null || onSwipeLeft != null || onLongPress != null)
+  )
 
   return (
     <ListItem
+      ref={listItemRef}
       id={task.id}
       title={task.title}
       isSelected={isSelected}

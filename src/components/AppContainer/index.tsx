@@ -1,7 +1,10 @@
 import { type ReactNode } from 'react'
 import { useAppStore } from '../../stores/appStore'
+import { useUIStore } from '../../stores/uiStore'
 import { useConflictStore } from '../../stores/conflictStore'
+import { useMobileMode } from '../../hooks/useMobileMode'
 import { ColumnsView } from '../ColumnsView'
+import { MobileColumnsView } from '../MobileColumnsView'
 import { Footer } from '../Footer'
 import { SettingsPanel } from '../SettingsPanel'
 import { ShortcutSheet } from '../ShortcutSheet'
@@ -11,13 +14,16 @@ import { FeedbackToast } from '../FeedbackToast'
 import { CommandPalette } from '../CommandPalette'
 import { ConflictDialog } from '../ConflictDialog'
 import { ArchiveView } from '../ArchiveView'
+import { MobileMenu } from '../MobileMenu'
 
 interface AppContainerProps {
   children?: ReactNode
 }
 
 export function AppContainer({ children }: AppContainerProps) {
+  useMobileMode()
   const currentView = useAppStore((s) => s.currentView)
+  const isMobile = useUIStore((s) => s.mobileMode)
   // #region agent log
   fetch('http://127.0.0.1:7244/ingest/ebc00a6d-3ac2-45ad-a3bd-a7d852883501',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AppContainer/index.tsx:render',message:'AppContainer render',data:{currentView},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
   // #endregion
@@ -45,19 +51,31 @@ export function AppContainer({ children }: AppContainerProps) {
       <main className="flex-1 min-h-0 flex flex-col relative">
         {currentView === 'settings' ? (
           <div className="flex-1 min-h-0 flex flex-row">
-            <div className="flex-shrink-0 w-[320px] border-r border-flow-columnBorder">
+            <div
+              className={`flex-shrink-0 border-r border-flow-columnBorder ${
+                isMobile ? 'w-full' : 'w-[320px]'
+              }`}
+            >
               <SettingsPanel onClose={handleCloseSettings} />
             </div>
-            <div className="flex-1 min-h-0 min-w-0">
-              <ColumnsView
-                viewMode={previousView === 'upcoming' ? 'upcoming' : 'main_db'}
-                navigationPath={navigationPath}
-                colorMode={colorMode}
-              />
-            </div>
+            {!isMobile && (
+              <div className="flex-1 min-h-0 min-w-0">
+                <ColumnsView
+                  viewMode={previousView === 'upcoming' ? 'upcoming' : 'main_db'}
+                  navigationPath={navigationPath}
+                  colorMode={colorMode}
+                />
+              </div>
+            )}
           </div>
         ) : currentView === 'archive' ? (
           <ArchiveView />
+        ) : isMobile ? (
+          <MobileColumnsView
+            viewMode={currentView === 'upcoming' ? 'upcoming' : 'main_db'}
+            navigationPath={navigationPath}
+            colorMode={colorMode}
+          />
         ) : (
           <ColumnsView
             viewMode={currentView === 'upcoming' ? 'upcoming' : 'main_db'}
@@ -84,6 +102,7 @@ export function AppContainer({ children }: AppContainerProps) {
           onCancel={cancelConflict}
         />
       )}
+      <MobileMenu />
     </div>
   )
 }

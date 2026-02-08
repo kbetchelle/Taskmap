@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { getMobileMode } from '../lib/mobileDetection'
 
 export type CreationMode = 'type-select' | 'directory-naming' | 'task-panel' | null
 
@@ -17,6 +18,7 @@ export interface InlineEditState {
 
 // UI state; currentView/navigationPath also live in appStore for full AppState
 interface UIState {
+  mobileMode: boolean
   currentDirectoryId: string | null
   defaultView: 'main_db' | 'upcoming'
   creationState: CreationState | null
@@ -25,6 +27,9 @@ interface UIState {
   editPanelState: { itemId: string; type: 'task' | 'directory' } | null
   draggingItemId: string | null
   completionTimeouts: Record<string, ReturnType<typeof setTimeout>>
+  mobileMenuOpen: boolean
+  setMobileMode: (mode: boolean) => void
+  setMobileMenuOpen: (open: boolean) => void
   setCurrentDirectoryId: (id: string | null) => void
   setDefaultView: (view: 'main_db' | 'upcoming') => void
   setCreationState: (state: CreationState | null) => void
@@ -38,6 +43,8 @@ interface UIState {
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
+  mobileMode: typeof window !== 'undefined' ? getMobileMode() : false,
+  mobileMenuOpen: false,
   currentDirectoryId: null,
   defaultView: 'main_db',
   creationState: null,
@@ -46,6 +53,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   editPanelState: null,
   draggingItemId: null,
   completionTimeouts: {},
+  setMobileMode: (mode) => set({ mobileMode: mode }),
+  setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
   setCurrentDirectoryId: (id) => set({ currentDirectoryId: id }),
   setDefaultView: (view) => set({ defaultView: view }),
   setCreationState: (state) => set({ creationState: state }),

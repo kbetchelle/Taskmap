@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useAppStore } from '../../stores/appStore'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useTaskStore } from '../../stores/taskStore'
+import { useUIStore } from '../../stores/uiStore'
 
 function mainDbActiveCount(
   directories: { start_date: string | null }[],
@@ -19,6 +20,7 @@ function mainDbActiveCount(
 }
 
 export function Footer() {
+  const isMobile = useUIStore((s) => s.mobileMode)
   const navigationPath = useAppStore((s) => s.navigationPath)
   const currentView = useAppStore((s) => s.currentView)
   const colorMode = useAppStore((s) => s.colorMode)
@@ -71,7 +73,9 @@ export function Footer() {
 
   return (
     <footer
-      className="flex-shrink-0 h-8 border-t border-flow-columnBorder px-4 flex items-center gap-4 text-flow-footer text-flow-textSecondary"
+      className={`flex-shrink-0 h-8 border-t border-flow-columnBorder px-4 flex items-center gap-4 text-flow-footer text-flow-textSecondary ${
+        isMobile ? 'hidden md:flex' : ''
+      }`}
       style={{ minHeight: 32 }}
     >
       <nav className="flex items-center gap-1" aria-label="Breadcrumb">

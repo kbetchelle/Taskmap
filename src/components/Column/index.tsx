@@ -63,6 +63,10 @@ interface ColumnProps {
   onItemDragEnd?: () => void
   onDrop?: (targetDirectoryId: string | null, position: number, itemId: string) => void
   usePagination?: boolean
+  fullWidth?: boolean
+  onTaskSwipeRight?: (taskId: string) => void
+  onTaskSwipeLeft?: (taskId: string) => void
+  onTaskLongPress?: (taskId: string, clientX: number, clientY: number) => void
 }
 
 export function Column({
@@ -90,6 +94,10 @@ export function Column({
   onItemDragEnd,
   onDrop,
   usePagination = false,
+  fullWidth = false,
+  onTaskSwipeRight,
+  onTaskSwipeLeft,
+  onTaskLongPress,
 }: ColumnProps) {
   const headerLabel = directoryId == null ? 'Root' : directoryName ?? ''
   const [dropIndex, setDropIndex] = useState<number>(0)
@@ -224,12 +232,16 @@ export function Column({
   return (
     <section
       className="flex flex-col flex-shrink-0 border-r border-flow-columnBorder bg-flow-background"
-      style={{
-        minWidth: COLUMN_WIDTH_PX,
-        maxWidth: COLUMN_WIDTH_PX,
-        height: '100%',
-        scrollSnapAlign: 'start',
-      }}
+      style={
+        fullWidth
+          ? { flex: 1, minWidth: 0, height: '100%' }
+          : {
+              minWidth: COLUMN_WIDTH_PX,
+              maxWidth: COLUMN_WIDTH_PX,
+              height: '100%',
+              scrollSnapAlign: 'start',
+            }
+      }
       onClick={onColumnFocus}
       role="region"
       aria-label={`Column ${columnIndex + 1}: ${headerLabel}`}
@@ -321,6 +333,9 @@ export function Column({
                           onDragEnd={onItemDragEnd}
                           onSelect={(e) => onItemSelect(item.id, e)}
                           onExpand={() => onItemExpand(item)}
+                          onSwipeRight={onTaskSwipeRight ? () => onTaskSwipeRight(item.id) : undefined}
+                          onSwipeLeft={onTaskSwipeLeft ? () => onTaskSwipeLeft(item.id) : undefined}
+                          onLongPress={onTaskLongPress ? (x, y) => onTaskLongPress(item.id, x, y) : undefined}
                         />
                       )
                     }
@@ -394,6 +409,9 @@ export function Column({
                   onDragEnd={onItemDragEnd}
                   onSelect={(e) => onItemSelect(item.id, e)}
                   onExpand={() => onItemExpand(item)}
+                  onSwipeRight={onTaskSwipeRight ? () => onTaskSwipeRight(item.id) : undefined}
+                  onSwipeLeft={onTaskSwipeLeft ? () => onTaskSwipeLeft(item.id) : undefined}
+                  onLongPress={onTaskLongPress ? (x, y) => onTaskLongPress(item.id, x, y) : undefined}
                 />
               )
             }

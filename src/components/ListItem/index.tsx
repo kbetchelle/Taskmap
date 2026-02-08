@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, forwardRef } from 'react'
 
 interface ListItemProps {
   id: string
@@ -16,27 +16,41 @@ interface ListItemProps {
   children?: React.ReactNode
 }
 
-export function ListItem({
-  id,
-  title,
-  isSelected,
-  isFocused,
-  isCut = false,
-  draggable = false,
-  onDragStart,
-  onDragEnd,
-  onSelect,
-  onExpand,
-  className: extraClass = '',
-  children,
-}: ListItemProps) {
-  const ref = useRef<HTMLDivElement>(null)
+function mergeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
+  return (el: T | null) => {
+    refs.forEach((r) => {
+      if (typeof r === 'function') r(el)
+      else if (r) (r as React.MutableRefObject<T | null>).current = el
+    })
+  }
+}
+
+export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListItem(
+  {
+    id,
+    title,
+    isSelected,
+    isFocused,
+    isCut = false,
+    type,
+    draggable = false,
+    onDragStart,
+    onDragEnd,
+    onSelect,
+    onExpand,
+    className: extraClass = '',
+    children,
+  },
+  forwardedRef
+) {
+  const internalRef = useRef<HTMLDivElement>(null)
+  const ref = mergeRefs(internalRef, forwardedRef)
   const [isDragging, setIsDragging] = useState(false)
 
   useEffect(() => {
-    if (isFocused && ref.current) {
-      ref.current.focus()
-      ref.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    if (isFocused && internalRef.current) {
+      internalRef.current.focus()
+      internalRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
   }, [isFocused])
 
@@ -58,6 +72,7 @@ export function ListItem({
       ref={ref}
       id={`item-${id}`}
       data-item-id={id}
+      {...(type === 'task' ? { 'data-task-id': id } : {})}
       role="button"
       tabIndex={isFocused ? 0 : -1}
       draggable={draggable}
@@ -73,7 +88,7 @@ export function ListItem({
         setIsDragging(false)
       }}
       className={`
-        flex items-center gap-2 py-2 px-3 min-h-[32px] cursor-pointer
+        flex items-center gap-2 min-h-[44px] py-3 px-4 md:min-h-[32px] md:py-2 md:px-3 cursor-pointer
         text-flow-task text-flow-textPrimary
         ${bgClass}
         ${isFocused ? 'item-focused' : ''}
@@ -94,4 +109,4 @@ export function ListItem({
       {children ?? <span className="flex-1 truncate">{title}</span>}
     </div>
   )
-}
+})
