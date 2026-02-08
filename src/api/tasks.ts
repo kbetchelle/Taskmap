@@ -60,6 +60,7 @@ export async function insertTask(
     archive_reason: null,
     estimated_duration_minutes: task.estimated_duration_minutes ?? null,
     actual_duration_minutes: task.actual_duration_minutes ?? 0,
+    checklist_items: task.checklist_items ?? [],
   }
   const { data, error } = await supabase
     .from('tasks')
@@ -72,7 +73,7 @@ export async function insertTask(
 
 export async function updateTask(
   id: string,
-  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'archived_at' | 'archive_reason' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'actual_duration_minutes'>>
+  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'archived_at' | 'archive_reason' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'actual_duration_minutes' | 'checklist_items'>>
 ): Promise<Task> {
   const { data, error } = await supabase
     .from('tasks')
@@ -87,7 +88,7 @@ export async function updateTask(
 /** Update task with conflict check. Use for normal saves. */
 export async function updateTaskWithConflictCheck(
   taskId: string,
-  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes'>>,
+  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'checklist_items'>>,
   currentTask: Task
 ): Promise<SaveTaskResult> {
   const version = currentTask.version ?? 1

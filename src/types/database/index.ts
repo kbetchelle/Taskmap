@@ -15,6 +15,14 @@ export interface RecurrencePattern {
   end_after_count?: number | null;
 }
 
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  is_completed: boolean;
+  position: number;
+  created_at: string;
+}
+
 export interface Directory {
   id: string;
   name: string;
@@ -57,6 +65,7 @@ export interface Task {
   is_recurrence_template?: boolean;
   estimated_duration_minutes?: number | null;
   actual_duration_minutes?: number;
+  checklist_items?: ChecklistItem[];
 }
 
 export type RecurringTask = Task & { recurrence_pattern: RecurrencePattern };

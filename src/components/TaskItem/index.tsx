@@ -6,6 +6,7 @@ import { getCategoryColor } from '../../lib/theme/index'
 import { getPriorityColor } from '../../lib/utils/priorityCategory'
 import { highlightSearchTerms } from '../../lib/utils'
 import { formatRecurrence } from '../../lib/recurrence'
+import { calculateChecklistProgress } from '../../lib/utils/checklist'
 import { useTimeTrackerStore } from '../../stores/timeTrackerStore'
 
 interface TaskItemProps {
@@ -135,6 +136,24 @@ export function TaskItem({
           &#x23F1;
         </span>
       )}
+      {task.checklist_items && task.checklist_items.length > 0 && (() => {
+        const completed = task.checklist_items.filter((i) => i.is_completed).length
+        const total = task.checklist_items.length
+        const progress = calculateChecklistProgress(task.checklist_items)
+        return (
+          <span
+            className="checklist-preview flex-shrink-0 flex items-center gap-1 ml-1 text-flow-meta text-flow-textSecondary"
+            title={`Checklist ${completed}/${total} complete`}
+            aria-label={`Checklist ${completed} of ${total} items complete`}
+          >
+            <span className="checklist-icon" aria-hidden>☑</span>
+            <span className="checklist-count">{completed}/{total}</span>
+            {progress === 100 && (
+              <span className="text-[#34C759]" aria-hidden>✓</span>
+            )}
+          </span>
+        )
+      })()}
     </ListItem>
   )
 }

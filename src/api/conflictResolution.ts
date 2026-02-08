@@ -30,6 +30,7 @@ const TASK_FIELDS_TO_CHECK = [
   'recurrence_series_id',
   'is_recurrence_template',
   'estimated_duration_minutes',
+  'checklist_items',
 ] as const
 
 const DIRECTORY_FIELDS_TO_CHECK = [
@@ -131,6 +132,7 @@ export async function saveTaskWithConflictCheck(
       | 'recurrence_series_id'
       | 'is_recurrence_template'
       | 'estimated_duration_minutes'
+      | 'checklist_items'
     >
   >,
   expectedVersion: number,

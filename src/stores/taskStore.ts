@@ -37,6 +37,7 @@ interface TaskState {
         | 'recurrence_series_id'
         | 'is_recurrence_template'
         | 'estimated_duration_minutes'
+        | 'checklist_items'
       >
     >
   ) => Promise<void>
@@ -112,6 +113,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         recurrence_series_id: merged.recurrence_series_id,
         is_recurrence_template: merged.is_recurrence_template,
         estimated_duration_minutes: merged.estimated_duration_minutes,
+        checklist_items: merged.checklist_items,
       }
       const updated = await api.updateTask(id, mergedUpdates)
       set({
@@ -143,6 +145,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         recurrence_series_id: resolved.recurrence_series_id,
         is_recurrence_template: resolved.is_recurrence_template,
         estimated_duration_minutes: resolved.estimated_duration_minutes,
+        checklist_items: resolved.checklist_items,
       }
       const updated = await api.updateTask(id, resolvedUpdates)
       set({

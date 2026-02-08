@@ -12,6 +12,8 @@ import {
 } from '../../lib/utils/dateFormat'
 import { formatRecurrence } from '../../lib/recurrence'
 import { TimeTrackingSection } from '../TimeTrackingSection'
+import { ChecklistSection } from '../ChecklistSection'
+import { useTaskStore } from '../../stores/taskStore'
 import {
   formatPriority,
   getPriorityIcon,
@@ -269,6 +271,7 @@ export function ExpandedTaskPanel({
   const showError = useFeedbackStore((s) => s.showError)
   const showInfo = useFeedbackStore((s) => s.showInfo)
   const showSuccess = useFeedbackStore((s) => s.showSuccess)
+  const updateTask = useTaskStore((s) => s.updateTask)
   const openAllAttachments = useCallback(() => {
     attachments.forEach((att) => {
       openAttachment(att).catch(() => showError('Could not open attachment'))
@@ -496,6 +499,11 @@ export function ExpandedTaskPanel({
               onAttachmentsLoaded={setAttachments}
             />
           </div>
+
+          <ChecklistSection
+            task={task}
+            onUpdate={(items) => updateTask(task.id, { checklist_items: items })}
+          />
 
           <TimeTrackingSection task={task} onTaskUpdated={onTaskUpdated} />
 
