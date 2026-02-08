@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { Task, TaskPriority } from '../../types'
+import type { Task, TaskPriority, RecurrencePattern } from '../../types'
 import { COLUMN_WIDTH_PX } from '../../lib/theme'
 import { PRESET_CATEGORIES, DEFAULT_BACKGROUND_PALETTE } from '../../lib/constants'
 import {
@@ -10,12 +10,14 @@ import {
   parseDateInputWithConfidence,
 } from '../../lib/validation'
 import { DateInputField } from '../DateInputField'
+import { RecurrenceField } from '../RecurrenceField'
 
 const TASK_CREATION_FIELDS = [
   'title',
   'priority',
   'start_date',
   'due_date',
+  'recurrence',
   'category',
   'tags',
   'background',
@@ -29,6 +31,7 @@ export interface TaskCreationMetadata {
   priority?: string
   start_date?: string
   due_date?: string
+  recurrence?: RecurrencePattern | null
   category?: string
   tags?: string[]
   background?: string
@@ -71,14 +74,17 @@ export function TaskCreationPanel({
     titleInputRef.current?.focus()
   }, [])
 
-  const updateMetadata = useCallback((key: TaskCreationField, value: string | string[] | undefined) => {
-    setMetadata((prev) => ({ ...prev, [key]: value }))
-    setErrors((prev) => {
-      const next = new Map(prev)
-      next.delete(key)
-      return next
-    })
-  }, [])
+  const updateMetadata = useCallback(
+    (key: TaskCreationField, value: string | string[] | RecurrencePattern | null | undefined) => {
+      setMetadata((prev) => ({ ...prev, [key]: value }))
+      setErrors((prev) => {
+        const next = new Map(prev)
+        next.delete(key)
+        return next
+      })
+    },
+    []
+  )
 
   const trySave = useCallback(() => {
     setErrors(new Map())
@@ -128,6 +134,7 @@ export function TaskCreationPanel({
         ? DEFAULT_BACKGROUND_PALETTE[bgIndex - 1]
         : null
 
+    const recurrence = metadata.recurrence ?? null
     const task: Omit<Task, 'created_at' | 'updated_at'> = {
       id: itemId,
       title,
@@ -141,8 +148,23 @@ export function TaskCreationPanel({
       description: (metadata.description ?? '').trim() || null,
       is_completed: false,
       completed_at: null,
+      archived_at: null,
+      archive_reason: null,
       position,
       user_id: userId,
+      ...(recurrence
+        ? {
+            recurrence_pattern: recurrence,
+            recurrence_parent_id: null,
+            recurrence_series_id: itemId,
+            is_recurrence_template: false,
+          }
+        : {
+            recurrence_pattern: null,
+            recurrence_parent_id: null,
+            recurrence_series_id: null,
+            is_recurrence_template: false,
+          }),
     }
     onSave(task)
   }, [metadata, itemId, directoryId, position, userId, onSave])
@@ -240,9 +262,17 @@ export function TaskCreationPanel({
         />
 
         <div>
+          <label className="block text-flow-meta text-flow-textSecondary mb-1">Recurrence</label>
+          <RecurrenceField
+            value={metadata.recurrence ?? null}
+            onChange={(v) => updateMetadata('recurrence', v)}
+          />
+        </div>
+
+        <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Category</label>
           <select
-            ref={(el) => (fieldRefs.current[4] = el)}
+            ref={(el) => (fieldRefs.current[5] = el)}
             value={metadata.category ?? ''}
             onChange={(e) => updateMetadata('category', e.target.value)}
             onKeyDown={(e) => handleKeyDown(e as unknown as React.KeyboardEvent, 'category')}
@@ -261,7 +291,7 @@ export function TaskCreationPanel({
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Tags</label>
           <input
-            ref={(el) => (fieldRefs.current[5] = el)}
+            ref={(el) => (fieldRefs.current[6] = el)}
             type="text"
             value={Array.isArray(metadata.tags) ? metadata.tags.join(', ') : (metadata.tags ?? '')}
             onChange={(e) => updateMetadata('tags', e.target.value)}
@@ -275,7 +305,7 @@ export function TaskCreationPanel({
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Background (1–6)</label>
           <input
-            ref={(el) => (fieldRefs.current[6] = el)}
+            ref={(el) => (fieldRefs.current[7] = el)}
             type="text"
             value={metadata.background ?? ''}
             onChange={(e) => updateMetadata('background', e.target.value)}
@@ -289,7 +319,7 @@ export function TaskCreationPanel({
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Description</label>
           <textarea
-            ref={(el) => (fieldRefs.current[7] = el)}
+            ref={(el) => (fieldRefs.current[8] = el)}
             value={metadata.description ?? ''}
             onChange={(e) => updateMetadata('description', e.target.value)}
             onKeyDown={(e) => handleKeyDown(e, 'description')}

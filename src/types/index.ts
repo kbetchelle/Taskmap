@@ -2,6 +2,8 @@ export type {
   TaskPriority,
   ActionType,
   EntityType,
+  RecurrencePattern,
+  RecurringTask,
   Directory,
   Task,
   TaskAttachment,

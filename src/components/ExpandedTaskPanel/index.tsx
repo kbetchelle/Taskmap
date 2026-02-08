@@ -10,6 +10,7 @@ import {
   formatRelativeTime,
   formatFileSize,
 } from '../../lib/utils/dateFormat'
+import { formatRecurrence } from '../../lib/recurrence'
 import {
   formatPriority,
   getPriorityIcon,
@@ -421,6 +422,13 @@ export function ExpandedTaskPanel({
                 value={formatDateNatural(task.due_date)}
                 icon="🎯"
                 isOverdue={dueOverdue}
+              />
+            )}
+            {task.recurrence_pattern && (
+              <MetadataField
+                label="Repeats"
+                value={formatRecurrence(task.recurrence_pattern)}
+                icon="🔄"
               />
             )}
             <MetadataField

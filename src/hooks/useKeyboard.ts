@@ -12,6 +12,7 @@ type ShortcutHandler = () => void
 interface UseKeyboardOptions {
   onMainView?: ShortcutHandler
   onUpcomingView?: ShortcutHandler
+  onArchiveView?: ShortcutHandler
   onSearch?: ShortcutHandler
   onNewTask?: ShortcutHandler
   onNewDirectory?: ShortcutHandler
@@ -93,6 +94,7 @@ function isSettingsContext(): boolean {
 export function useKeyboard({
   onMainView,
   onUpcomingView,
+  onArchiveView,
   onSearch,
   onNewTask,
   onNewDirectory,
@@ -225,6 +227,11 @@ export function useKeyboard({
       if (matchShortcut(e, getShortcut('upcomingView')) && onUpcomingView) {
         e.preventDefault()
         onUpcomingView()
+        return
+      }
+      if (matchShortcut(e, getShortcut('archiveView')) && onArchiveView) {
+        e.preventDefault()
+        onArchiveView()
         return
       }
       if (matchShortcut(e, getShortcut('commandPalette')) && onCommandPalette) {
@@ -431,6 +438,7 @@ export function useKeyboard({
       enabled,
       onMainView,
       onUpcomingView,
+      onArchiveView,
       onSearch,
       onNewTask,
       onNewDirectory,

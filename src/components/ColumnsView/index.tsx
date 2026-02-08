@@ -10,7 +10,8 @@ import { useKeyboard } from '../../hooks/useKeyboard'
 import { showInlineError } from '../../lib/inlineError'
 import { pushUndoAndPersist, performUndo, performRedo, loadMoreUndoHistory } from '../../lib/undo'
 import { useFeedbackStore } from '../../stores/feedbackStore'
-import type { Task, Directory } from '../../types'
+import type { Task, Directory, RecurringTask } from '../../types'
+import { createNextRecurrence } from '../../api/tasks'
 import type { ColorMode, ClipboardItem, SavedView, FilterState } from '../../types/state'
 import { savedViewToRow } from '../../lib/savedViews'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -94,6 +95,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const addTask = useTaskStore((s) => s.addTask)
   const updateTask = useTaskStore((s) => s.updateTask)
   const removeTask = useTaskStore((s) => s.removeTask)
+  const archiveTask = useTaskStore((s) => s.archiveTask)
   const selectedItemIds = useAppStore((s) => s.selectedItems)
   const pushNavigation = useAppStore((s) => s.pushNavigation)
   const popNavigation = useAppStore((s) => s.popNavigation)
@@ -356,8 +358,20 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
           completed_at: completedAt,
           position: maxPosition + 1,
         })
+        if (item.recurrence_pattern) {
+          try {
+            const nextTask = await createNextRecurrence(item as RecurringTask)
+            if (nextTask) {
+              const currentTasks = useTaskStore.getState().tasks
+              setTasks([...currentTasks, nextTask])
+              useFeedbackStore.getState().showSuccess('Created next occurrence')
+            }
+          } catch {
+            useFeedbackStore.getState().showError('Failed to create next occurrence')
+          }
+        }
         const timeoutId = setTimeout(() => {
-          removeTask(item.id)
+          archiveTask(item.id, 'completed')
           clearCompletionTimeout(item.id)
         }, COMPLETION_DELETE_MS)
         setCompletionTimeout(item.id, timeoutId)
@@ -384,7 +398,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     getItemsForColumn,
     setTasks,
     updateTask,
-    removeTask,
+    archiveTask,
     setCompletionTimeout,
     clearCompletionTimeout,
   ])
@@ -1010,6 +1024,8 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
             user_id: userId!,
             is_completed: false,
             completed_at: null,
+            archived_at: null,
+            archive_reason: null,
             priority: preserveMetadata ? task.priority : null,
             start_date: preserveMetadata ? task.start_date : null,
             due_date: preserveMetadata ? task.due_date : null,
@@ -1215,6 +1231,13 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     state.setCurrentView('settings')
   }, [])
 
+  const handleOpenArchive = useCallback(() => {
+    const state = useAppStore.getState()
+    if (state.currentView === 'archive') return
+    state.setPreviousView(state.currentView)
+    state.setCurrentView('archive')
+  }, [])
+
   const handleUndo = useCallback(async () => {
     let item = popUndo()
     if (!item && userId) {
@@ -1282,6 +1305,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   useKeyboard({
     onMainView: () => setCurrentView('main_db'),
     onUpcomingView: () => setCurrentView('upcoming'),
+    onArchiveView: handleOpenArchive,
     onSettings: handleOpenSettings,
     onUndo: handleUndo,
     onRedo: handleRedo,

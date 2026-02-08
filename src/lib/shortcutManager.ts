@@ -24,6 +24,7 @@ interface ShortcutDefinition {
 const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   { action: 'mainView', defaultShortcut: SHORTCUTS.MAIN_VIEW, category: 'View', description: 'Main view' },
   { action: 'upcomingView', defaultShortcut: SHORTCUTS.UPCOMING_VIEW, category: 'View', description: 'Upcoming view' },
+  { action: 'archiveView', defaultShortcut: SHORTCUTS.ARCHIVE_VIEW, category: 'View', description: 'View archived tasks' },
   { action: 'commandPalette', defaultShortcut: SHORTCUTS.COMMAND_PALETTE, category: 'View', description: 'Command palette' },
   { action: 'searchOpen', defaultShortcut: SHORTCUTS.SEARCH_OPEN, category: 'View', description: 'Open search overlay' },
   { action: 'completedToggle', defaultShortcut: SHORTCUTS.COMPLETED_TOGGLE, category: 'View', description: 'Show/hide completed tasks' },

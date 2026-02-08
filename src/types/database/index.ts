@@ -5,6 +5,16 @@ export type TaskPriority = 'LOW' | 'MED' | 'HIGH';
 export type ActionType = 'create' | 'update' | 'delete' | 'move' | 'complete';
 export type EntityType = 'task' | 'directory';
 
+export interface RecurrencePattern {
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+  days_of_week?: number[];
+  day_of_month?: number;
+  month_of_year?: number;
+  end_date?: string | null;
+  end_after_count?: number | null;
+}
+
 export interface Directory {
   id: string;
   name: string;
@@ -33,13 +43,21 @@ export interface Task {
   description: string | null;
   is_completed: boolean;
   completed_at: string | null;
+  archived_at: string | null;
+  archive_reason: 'completed' | 'user_deleted' | 'auto_archived' | null;
   position: number;
   created_at: string;
   updated_at: string;
   user_id: string;
   version?: number;
   updated_by?: string | null;
+  recurrence_pattern?: RecurrencePattern | null;
+  recurrence_parent_id?: string | null;
+  recurrence_series_id?: string | null;
+  is_recurrence_template?: boolean;
 }
+
+export type RecurringTask = Task & { recurrence_pattern: RecurrencePattern };
 
 export interface TaskAttachment {
   id: string;

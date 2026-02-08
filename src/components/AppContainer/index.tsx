@@ -10,6 +10,7 @@ import { OnboardingFlow } from '../OnboardingFlow'
 import { FeedbackToast } from '../FeedbackToast'
 import { CommandPalette } from '../CommandPalette'
 import { ConflictDialog } from '../ConflictDialog'
+import { ArchiveView } from '../ArchiveView'
 
 interface AppContainerProps {
   children?: ReactNode
@@ -55,6 +56,8 @@ export function AppContainer({ children }: AppContainerProps) {
               />
             </div>
           </div>
+        ) : currentView === 'archive' ? (
+          <ArchiveView />
         ) : (
           <ColumnsView
             viewMode={currentView === 'upcoming' ? 'upcoming' : 'main_db'}

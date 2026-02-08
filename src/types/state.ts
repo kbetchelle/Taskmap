@@ -3,7 +3,7 @@
 import type { Task, Directory, UserSettings } from './database'
 import type { TaskPriority } from './database'
 
-export type CurrentView = 'main_db' | 'upcoming' | 'settings'
+export type CurrentView = 'main_db' | 'upcoming' | 'settings' | 'archive'
 export type ColorMode = 'none' | 'category' | 'priority'
 
 export interface ClipboardItem {

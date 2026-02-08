@@ -80,8 +80,4 @@ export async function cleanupExpiredActions(): Promise<number> {
   return (data as number) ?? 0
 }
 
-export async function cleanupCompletedTasks(): Promise<number> {
-  const { data, error } = await supabase.rpc('cleanup_completed_tasks')
-  if (error) throw error
-  return (data as number) ?? 0
-}
+// cleanup_completed_tasks RPC removed; task archival is client-only (6h delay after completion)

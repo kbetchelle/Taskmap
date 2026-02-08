@@ -5,6 +5,7 @@ import { ListItem } from '../ListItem'
 import { getCategoryColor } from '../../lib/theme/index'
 import { getPriorityColor } from '../../lib/utils/priorityCategory'
 import { highlightSearchTerms } from '../../lib/utils'
+import { formatRecurrence } from '../../lib/recurrence'
 
 interface TaskItemProps {
   task: Task
@@ -112,6 +113,15 @@ export function TaskItem({
       {daysUntilActive > 0 && (
         <span className="flex-shrink-0 text-flow-meta text-flow-textSecondary ml-1">
           {daysUntilActive === 1 ? 'Tomorrow' : `in ${daysUntilActive} days`}
+        </span>
+      )}
+      {task.recurrence_pattern && (
+        <span
+          className="recurrence-indicator flex-shrink-0 ml-1 text-flow-meta text-flow-textSecondary"
+          title={formatRecurrence(task.recurrence_pattern)}
+          aria-label={formatRecurrence(task.recurrence_pattern)}
+        >
+          &#x1F504;
         </span>
       )}
     </ListItem>

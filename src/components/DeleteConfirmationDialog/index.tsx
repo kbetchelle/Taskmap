@@ -34,27 +34,39 @@ export function DeleteConfirmationDialog({
     return () => window.removeEventListener('keydown', handleKey)
   }, [onConfirm, onCancel])
 
+  const tasksOnly = items.length > 0 && items.every((i) => isTask(i))
+  const archiveHint = ' You can restore from Archive (⌘⇧A).'
   let message = ''
   if (items.length === 1) {
     const item = items[0]
     const name = isTask(item) ? item.title : item.name
-    message = `Delete "${name}"?`
-    if (!isTask(item)) {
+    if (isTask(item)) {
+      message = `Move "${name}" to archive?${archiveHint}`
+    } else {
+      message = `Delete "${name}"?`
       const childCount = childCountByDirectoryId[item.id] ?? 0
       if (childCount > 0) {
         message += `\n\nThis will also delete ${childCount} item${childCount !== 1 ? 's' : ''} inside.`
       }
     }
   } else {
-    message = `Delete ${items.length} items?`
-    const dirs = items.filter((i) => !isTask(i)) as Directory[]
-    if (dirs.length > 0) {
-      const totalChildren = dirs.reduce(
-        (sum, d) => sum + (childCountByDirectoryId[d.id] ?? 0),
-        0
-      )
-      if (totalChildren > 0) {
-        message += `\n\nThis will also delete ${totalChildren} nested item${totalChildren !== 1 ? 's' : ''}.`
+    if (tasksOnly) {
+      message = `Move ${items.length} tasks to archive?${archiveHint}`
+    } else {
+      message = `Delete ${items.length} items?`
+      const dirs = items.filter((i) => !isTask(i)) as Directory[]
+      const taskCount = items.filter((i) => isTask(i)).length
+      if (taskCount > 0) {
+        message += `\n\n${taskCount} task${taskCount !== 1 ? 's' : ''} will be moved to archive (restore via ⌘⇧A).`
+      }
+      if (dirs.length > 0) {
+        const totalChildren = dirs.reduce(
+          (sum, d) => sum + (childCountByDirectoryId[d.id] ?? 0),
+          0
+        )
+        if (totalChildren > 0) {
+          message += `\n\n${totalChildren} nested item${totalChildren !== 1 ? 's' : ''} in directories will be permanently deleted.`
+        }
       }
     }
   }
@@ -77,9 +89,9 @@ export function DeleteConfirmationDialog({
             type="button"
             variant="primary"
             onClick={onConfirm}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className={tasksOnly ? '' : 'bg-red-600 hover:bg-red-700 text-white'}
           >
-            Delete
+            {tasksOnly ? 'Move to archive' : 'Delete'}
           </Button>
         </div>
       </div>

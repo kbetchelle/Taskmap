@@ -32,10 +32,16 @@ interface TaskState {
         | 'completed_at'
         | 'position'
         | 'directory_id'
+        | 'recurrence_pattern'
+        | 'recurrence_parent_id'
+        | 'recurrence_series_id'
+        | 'is_recurrence_template'
       >
     >
   ) => Promise<void>
   removeTask: (id: string) => Promise<void>
+  archiveTask: (id: string, reason: 'completed' | 'user_deleted' | 'auto_archived') => Promise<void>
+  unarchiveTask: (id: string) => Promise<Task>
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -62,9 +68,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     return created
   },
   restoreTask: async (task) => {
-    const created = await api.insertTask({ ...task, id: task.id })
-    set({ tasks: [...get().tasks, created] })
-    return created
+    // Task "delete" is now archive; restore = unarchive
+    const updated = await api.unarchiveTask(task.id)
+    set({
+      tasks: get().tasks.filter((t) => t.id !== updated.id).concat(updated),
+    })
+    return updated
   },
   updateTask: async (id, updates) => {
     const currentTask = get().tasks.find((t) => t.id === id)
@@ -96,6 +105,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         completed_at: merged.completed_at,
         position: merged.position,
         directory_id: merged.directory_id,
+        recurrence_pattern: merged.recurrence_pattern,
+        recurrence_parent_id: merged.recurrence_parent_id,
+        recurrence_series_id: merged.recurrence_series_id,
+        is_recurrence_template: merged.is_recurrence_template,
       }
       const updated = await api.updateTask(id, mergedUpdates)
       set({
@@ -122,6 +135,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         completed_at: resolved.completed_at,
         position: resolved.position,
         directory_id: resolved.directory_id,
+        recurrence_pattern: resolved.recurrence_pattern,
+        recurrence_parent_id: resolved.recurrence_parent_id,
+        recurrence_series_id: resolved.recurrence_series_id,
+        is_recurrence_template: resolved.is_recurrence_template,
       }
       const updated = await api.updateTask(id, resolvedUpdates)
       set({
@@ -133,7 +150,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
   removeTask: async (id) => {
-    await api.deleteTask(id)
+    await api.archiveTask(id, 'user_deleted')
     set({ tasks: get().tasks.filter((t) => t.id !== id) })
+  },
+  archiveTask: async (id, reason) => {
+    await api.archiveTask(id, reason)
+    set({ tasks: get().tasks.filter((t) => t.id !== id) })
+  },
+  unarchiveTask: async (id) => {
+    const updated = await api.unarchiveTask(id)
+    set({
+      tasks: get().tasks.filter((t) => t.id !== updated.id).concat(updated),
+    })
+    return updated
   },
 }))

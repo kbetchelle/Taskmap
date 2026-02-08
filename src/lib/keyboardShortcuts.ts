@@ -9,6 +9,7 @@ const mod = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navi
 export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
   { key: '1', modifiers: mod, context: 'global', description: 'Main view', category: 'View', action: 'mainView' },
   { key: 'L', modifiers: `${mod}+Shift`, context: 'global', description: 'Upcoming view', category: 'View', action: 'upcomingView' },
+  { key: 'A', modifiers: `${mod}+Shift`, context: 'global', description: 'View archived tasks', category: 'View', action: 'archiveView' },
   { key: 'K', modifiers: mod, context: 'global', description: 'Command palette', category: 'View', action: 'commandPalette' },
   { key: 'S', modifiers: `${mod}+Shift`, context: 'global', description: 'Open search overlay', category: 'View', action: 'searchOpen' },
   { key: 'H', modifiers: `${mod}+Shift`, context: 'global', description: 'Show/hide completed tasks', category: 'View', action: 'completedToggle' },

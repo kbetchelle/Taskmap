@@ -76,6 +76,7 @@ export const DEFAULT_SETTINGS_PAYLOAD = {
 export const SHORTCUTS = {
   MAIN_VIEW: 'mod+1',
   UPCOMING_VIEW: 'mod+shift+l',
+  ARCHIVE_VIEW: 'mod+shift+a',
   COMMAND_PALETTE: 'mod+k',
   SEARCH_OPEN: 'mod+shift+s',
   COMPLETED_TOGGLE: 'mod+shift+h',

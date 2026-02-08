@@ -42,6 +42,7 @@ export async function fetchDirectoryContentsPaginated(
     .from('tasks')
     .select('*')
     .eq('directory_id', parentId)
+    .is('archived_at', null)
     .order('position', { ascending: true })
     .limit(limit)
 

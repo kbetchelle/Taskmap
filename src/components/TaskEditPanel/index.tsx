@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { Task, TaskPriority } from '../../types'
+import type { Task, TaskPriority, RecurrencePattern } from '../../types'
 import { COLUMN_WIDTH_PX } from '../../lib/theme'
 import { PRESET_CATEGORIES, DEFAULT_BACKGROUND_PALETTE } from '../../lib/constants'
 import {
@@ -10,12 +10,14 @@ import {
   parseDateInputWithConfidence,
 } from '../../lib/validation'
 import { DateInputField } from '../DateInputField'
+import { RecurrenceField } from '../RecurrenceField'
 
 const TASK_EDIT_FIELDS = [
   'title',
   'priority',
   'start_date',
   'due_date',
+  'recurrence',
   'category',
   'tags',
   'background',
@@ -56,6 +58,9 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
       : ''
   )
   const [description, setDescription] = useState(task.description ?? '')
+  const [recurrence, setRecurrence] = useState<RecurrencePattern | null>(
+    task.recurrence_pattern ?? null
+  )
   const [error, setError] = useState<string | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null) as React.MutableRefObject<HTMLInputElement | null>
   const fieldRefs = useRef<(HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)[]>(
@@ -107,6 +112,21 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
         ? DEFAULT_BACKGROUND_PALETTE[bgIndex - 1]
         : null
 
+    const recurrenceUpdates =
+      recurrence != null
+        ? {
+            recurrence_pattern: recurrence,
+            recurrence_parent_id: task.recurrence_parent_id ?? null,
+            recurrence_series_id: task.recurrence_series_id ?? task.id,
+            is_recurrence_template: task.is_recurrence_template ?? false,
+          }
+        : {
+            recurrence_pattern: null,
+            recurrence_parent_id: null,
+            recurrence_series_id: null,
+            is_recurrence_template: false,
+          }
+
     onSave(task.id, {
       title: t,
       priority: priorityVal,
@@ -116,6 +136,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
       tags: tagsArr,
       background_color,
       description: description.trim() || null,
+      ...recurrenceUpdates,
     })
   }, [
     title,
@@ -126,7 +147,11 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
     tags,
     background,
     description,
+    recurrence,
     task.id,
+    task.recurrence_parent_id,
+    task.recurrence_series_id,
+    task.is_recurrence_template,
     onSave,
   ])
 
@@ -211,9 +236,13 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
           placeholder="e.g., tomorrow, next friday, 02/14/26"
         />
         <div>
+          <label className="block text-flow-meta text-flow-textSecondary mb-1">Recurrence</label>
+          <RecurrenceField value={recurrence} onChange={setRecurrence} />
+        </div>
+        <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Category</label>
           <select
-            ref={(el) => (fieldRefs.current[4] = el)}
+            ref={(el) => (fieldRefs.current[5] = el)}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             onKeyDown={handleKeyDown as unknown as React.KeyboardEventHandler<HTMLSelectElement>}
@@ -231,7 +260,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Tags</label>
           <input
-            ref={(el) => (fieldRefs.current[5] = el)}
+            ref={(el) => (fieldRefs.current[6] = el)}
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
@@ -243,7 +272,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Background (1–6)</label>
           <input
-            ref={(el) => (fieldRefs.current[6] = el)}
+            ref={(el) => (fieldRefs.current[7] = el)}
             type="text"
             value={background}
             onChange={(e) => setBackground(e.target.value)}
@@ -255,7 +284,7 @@ export function TaskEditPanel({ task, onSave, onCancel }: TaskEditPanelProps) {
         <div>
           <label className="block text-flow-meta text-flow-textSecondary mb-1">Description</label>
           <textarea
-            ref={(el) => (fieldRefs.current[7] = el)}
+            ref={(el) => (fieldRefs.current[8] = el)}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             onKeyDown={handleKeyDown}

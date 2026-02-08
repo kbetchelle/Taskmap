@@ -53,7 +53,11 @@ export function Footer() {
       ? 'Today'
       : currentView === 'upcoming'
         ? 'Upcoming'
-        : 'Settings'
+        : currentView === 'archive'
+          ? 'Archive'
+          : currentView === 'settings'
+            ? 'Settings'
+            : 'Settings'
   const colorLabel =
     colorMode === 'priority' ? 'Priority' : colorMode === 'category' ? 'Category' : 'No color'
 

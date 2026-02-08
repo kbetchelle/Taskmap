@@ -19,6 +19,10 @@ interface UpdateTaskVariables {
       | 'completed_at'
       | 'position'
       | 'directory_id'
+      | 'recurrence_pattern'
+      | 'recurrence_parent_id'
+      | 'recurrence_series_id'
+      | 'is_recurrence_template'
     >
   >
   directoryId: string
