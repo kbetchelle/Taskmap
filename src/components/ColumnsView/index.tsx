@@ -14,6 +14,8 @@ import type { Task, Directory, RecurringTask } from '../../types'
 import { createNextRecurrence } from '../../api/tasks'
 import type { ColorMode, ClipboardItem, SavedView, FilterState } from '../../types/state'
 import { savedViewToRow } from '../../lib/savedViews'
+import { formatShortcutForDisplay } from '../../lib/platform'
+import { useShortcutStore } from '../../lib/shortcutManager'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { searchTasks as searchTasksApi } from '../../api/search'
 import { Column } from '../Column'
@@ -1267,25 +1269,28 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   }, [pushKeyboardContext])
 
   const setCommandPaletteCommands = useAppStore((s) => s.setCommandPaletteCommands)
+  const shortcutMappings = useShortcutStore((s) => s.mappings)
   useEffect(() => {
+    const getShortcut = (action: string) =>
+      formatShortcutForDisplay(useShortcutStore.getState().getShortcut(action) || '')
     const commands = [
-      { id: 'goto-main', label: 'Go to Today View', category: 'Navigation', action: () => setCurrentView('main_db'), shortcut: '⌘1' },
-      { id: 'goto-upcoming', label: 'Go to Upcoming View', category: 'Navigation', action: () => setCurrentView('upcoming'), shortcut: '⌘⇧L' },
+      { id: 'goto-main', label: 'Go to Today View', category: 'Navigation', action: () => setCurrentView('main_db'), shortcut: getShortcut('mainView') },
+      { id: 'goto-upcoming', label: 'Go to Upcoming View', category: 'Navigation', action: () => setCurrentView('upcoming'), shortcut: getShortcut('upcomingView') },
       { id: 'goto-root', label: 'Go to Root', category: 'Navigation', action: handleScrollHome, shortcut: 'Home' },
-      { id: 'create', label: 'Create task or directory', category: 'Creation', action: initiateCreation, shortcut: '⌘N' },
-      { id: 'color-none', label: 'No color mode', category: 'View', action: () => setColorMode('none'), shortcut: '⌘⌥N' },
-      { id: 'color-category', label: 'Category color mode', category: 'View', action: () => setColorMode('category'), shortcut: '⌘⌥C' },
-      { id: 'color-priority', label: 'Priority color mode', category: 'View', action: () => setColorMode('priority'), shortcut: '⌘⌥P' },
-      { id: 'toggle-completed', label: 'Show/hide completed tasks', category: 'View', action: handleToggleShowCompleted, shortcut: '⌘⇧H' },
-      { id: 'search', label: 'Search & filter', category: 'Search', action: handleOpenSearch, shortcut: '⌘⇧S' },
-      { id: 'settings', label: 'Open settings', category: 'Settings', action: handleOpenSettings, shortcut: '⌘,' },
-      { id: 'shortcuts', label: 'Keyboard shortcuts', category: 'Help', action: () => setShortcutSheetOpen(true), shortcut: '⌘/' },
+      { id: 'create', label: 'Create task or directory', category: 'Creation', action: initiateCreation, shortcut: getShortcut('newTask') },
+      { id: 'color-none', label: 'No color mode', category: 'View', action: () => setColorMode('none'), shortcut: getShortcut('colorNone') },
+      { id: 'color-category', label: 'Category color mode', category: 'View', action: () => setColorMode('category'), shortcut: getShortcut('colorCategory') },
+      { id: 'color-priority', label: 'Priority color mode', category: 'View', action: () => setColorMode('priority'), shortcut: getShortcut('colorPriority') },
+      { id: 'toggle-completed', label: 'Show/hide completed tasks', category: 'View', action: handleToggleShowCompleted, shortcut: getShortcut('completedToggle') },
+      { id: 'search', label: 'Search & filter', category: 'Search', action: handleOpenSearch, shortcut: getShortcut('searchOpen') },
+      { id: 'settings', label: 'Open settings', category: 'Settings', action: handleOpenSettings, shortcut: getShortcut('settings') },
+      { id: 'shortcuts', label: 'Keyboard shortcuts', category: 'Help', action: () => setShortcutSheetOpen(true), shortcut: getShortcut('cmdSlash') },
       ...savedViewsList.slice(0, 8).map((view, i) => ({
         id: `saved-view-${view.id}`,
         label: `Load view: ${view.name}`,
         category: 'Saved Views',
         action: () => handleLoadSavedView(i),
-        shortcut: `⌘${i + 2}`,
+        shortcut: getShortcut(['savedView2', 'savedView3', 'savedView4', 'savedView5', 'savedView6', 'savedView7', 'savedView8', 'savedView9'][i]!),
       })),
     ]
     setCommandPaletteCommands(commands)
@@ -1301,6 +1306,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     setShortcutSheetOpen,
     savedViewsList,
     handleLoadSavedView,
+    shortcutMappings,
   ])
 
   useKeyboard({

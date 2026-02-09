@@ -32,7 +32,6 @@ export function AppContainer({ children }: AppContainerProps) {
   const setPreviousView = useAppStore((s) => s.setPreviousView)
   const searchBarOpen = useAppStore((s) => s.searchBarOpen)
   const onboardingOpen = useAppStore((s) => s.onboardingOpen)
-  const helpOpen = useAppStore((s) => s.helpOpen)
   const setHelpOpen = useAppStore((s) => s.setHelpOpen)
   const pendingConflict = useConflictStore((s) => s.pendingConflict)
   const resolveConflict = useConflictStore((s) => s.resolveConflict)

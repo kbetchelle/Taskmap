@@ -11,6 +11,8 @@ import { DEFAULT_SETTINGS_PAYLOAD, COLOR_PRESETS } from '../../lib/constants'
 import { applySettingsToUI } from '../../lib/applySettingsToUI'
 import { upsertUserSettings } from '../../api/userSettings'
 import { createStarterStructure } from '../../lib/starterStructure'
+import { formatShortcutForDisplay } from '../../lib/platform'
+import { useShortcutStore } from '../../lib/shortcutManager'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useFeedbackStore } from '../../stores/feedbackStore'
 
@@ -83,24 +85,27 @@ export function OnboardingFlow() {
     applySettingsToUI(updated)
 
     const skipStarter = updated.skip_starter_structure ?? false
+    const newTaskShortcut = formatShortcutForDisplay(
+      useShortcutStore.getState().getShortcut('newTask') || ''
+    )
     if (!skipStarter) {
       try {
         const { personal } = await createStarterStructure(userId)
         await useDirectoryStore.getState().fetchDirectories(userId)
         useAppStore.getState().setNavigationPath([personal.id])
         useFeedbackStore.getState().showTooltip(
-          "You're inside your Personal project. Press Cmd+N to create your first task!",
+          `You're inside your Personal project. Press ${newTaskShortcut} to create your first task!`,
           5000
         )
       } catch {
         useFeedbackStore.getState().showTooltip(
-          "Press Cmd+N in the Root column to create your first project",
+          `Press ${newTaskShortcut} in the Root column to create your first project`,
           5000
         )
       }
     } else {
       useFeedbackStore.getState().showTooltip(
-        'Press Cmd+N in the Root column to create your first project',
+        `Press ${newTaskShortcut} in the Root column to create your first project`,
         5000
       )
     }

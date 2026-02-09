@@ -6,7 +6,6 @@ import { useAppStore } from '../stores/appStore'
 
 // Critical browser shortcuts to prevent (use mod for platform-agnostic: Cmd on Mac, Ctrl on Windows/Linux)
 const PREVENTED_SHORTCUTS = [
-  'mod+n',
   'mod+w',
   'mod+t',
   'mod+r',

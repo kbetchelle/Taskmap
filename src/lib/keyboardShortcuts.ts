@@ -23,7 +23,7 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
   { key: '8', modifiers: mod, context: 'global', description: 'Load saved view 7', category: 'View', action: 'savedView8' },
   { key: '9', modifiers: mod, context: 'global', description: 'Load saved view 8', category: 'View', action: 'savedView9' },
   { key: 'N', modifiers: mod, context: 'global', description: 'Create (T for task, D for directory)', category: 'Actions', action: 'newTask' },
-  { key: 'N', modifiers: `${mod}+Shift`, context: 'global', description: 'Create (same as Cmd+N)', category: 'Actions', action: 'newDirectory' },
+  { key: 'N', modifiers: `${mod}+Shift`, context: 'global', description: 'Create directory', category: 'Actions', action: 'newDirectory' },
   { key: ',', modifiers: mod, context: 'global', description: 'Open settings', category: 'View', action: 'settings' },
   { key: 'Enter', context: 'settings', description: 'Save settings', category: 'Actions', action: 'enter' },
   { key: 'Escape', context: 'settings', description: 'Close settings', category: 'Navigation', action: 'escape' },

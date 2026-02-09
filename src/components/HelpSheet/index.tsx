@@ -65,6 +65,19 @@ function ShortcutsPage() {
 function GettingStartedPage() {
   const setHelpOpen = useAppStore((s) => s.setHelpOpen)
   const setOnboardingOpen = useAppStore((s) => s.setOnboardingOpen)
+  useShortcutStore((s) => s.mappings) // subscribe so Quick tips show current shortcuts
+  const newTaskShortcut = formatShortcutForDisplay(
+    useShortcutStore.getState().getShortcut('newTask') || ''
+  )
+  const cmdSlashShortcut = formatShortcutForDisplay(
+    useShortcutStore.getState().getShortcut('cmdSlash') || ''
+  )
+  const commandPaletteShortcut = formatShortcutForDisplay(
+    useShortcutStore.getState().getShortcut('commandPalette') || ''
+  )
+  const settingsShortcut = formatShortcutForDisplay(
+    useShortcutStore.getState().getShortcut('settings') || ''
+  )
 
   const openOnboarding = () => {
     setHelpOpen(false)
@@ -88,19 +101,19 @@ function GettingStartedPage() {
         </h3>
         <ul className="list-disc pl-5 text-flow-task text-flow-textSecondary space-y-1.5 m-0">
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">⌘N</kbd>
+            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{newTaskShortcut}</kbd>
             {' '}— Create a task or directory
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">⌘/</kbd>
+            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{cmdSlashShortcut}</kbd>
             {' '}— Show keyboard shortcuts
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">⌘K</kbd>
+            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{commandPaletteShortcut}</kbd>
             {' '}— Command palette
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">⌘,</kbd>
+            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{settingsShortcut}</kbd>
             {' '}— Open settings
           </li>
           <li>Use arrow keys to move focus; Enter to open a task or expand a directory.</li>
