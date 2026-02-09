@@ -31,7 +31,7 @@ export function Footer() {
   const tasks = useTaskStore((s) => s.tasks)
 
   const breadcrumbNames = useMemo(() => {
-    const names: string[] = ['Root']
+    const names: string[] = ['Home']
     navigationPath.forEach((id) => {
       const dir = directories.find((d) => d.id === id)
       if (dir) names.push(dir.name)

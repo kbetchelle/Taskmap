@@ -17,11 +17,13 @@ export function getPlatformShortcut(shortcut: string): string {
   return shortcut.replace(/Cmd/g, 'Ctrl')
 }
 
-/** Format shortcut for display (⌘N on Mac, Ctrl+N on Windows/Linux). */
+/** Format shortcut for display (⌘⌃N on Mac, Ctrl+Ctrl+N on Windows/Linux). */
 export function formatShortcutForDisplay(shortcut: string): string {
   if (!shortcut) return ''
   // Normalize 'mod' to platform-specific Cmd/Ctrl before formatting
-  const normalized = shortcut.replace(/mod/gi, IS_MAC ? 'Cmd' : 'Ctrl')
+  let normalized = shortcut.replace(/mod/gi, IS_MAC ? 'Cmd' : 'Ctrl')
+  // Normalize 'ctrl' (Control key) for consistent display
+  normalized = normalized.replace(/ctrl/gi, 'Ctrl')
   if (IS_MAC) {
     return normalized
       .replace(/Cmd/gi, '⌘')
