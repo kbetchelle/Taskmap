@@ -1,8 +1,14 @@
 -- Taskmap: initial schema, RLS, indexes, and functions
 -- Run in Supabase SQL Editor or via Supabase CLI
 
--- Enum for task priority
-CREATE TYPE task_priority AS ENUM ('LOW', 'MED', 'HIGH');
+-- Enum for task priority (idempotent for re-runs / existing DBs)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'task_priority') THEN
+    CREATE TYPE task_priority AS ENUM ('LOW', 'MED', 'HIGH');
+  END IF;
+END
+$$;
 
 -- Helper: set updated_at on row change
 CREATE OR REPLACE FUNCTION set_updated_at()
