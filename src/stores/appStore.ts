@@ -33,12 +33,14 @@ interface AppStoreState {
   searchResultTaskIds: string[] | null
   savedViews: Record<string, SavedView>
   onboardingOpen: boolean
+  helpOpen: boolean
   commandPaletteCommands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>
 
   setCurrentView: (view: CurrentView) => void
   setCommandPaletteCommands: (commands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>) => void
   setPreviousView: (view: CurrentView | null) => void
   setOnboardingOpen: (open: boolean) => void
+  setHelpOpen: (open: boolean) => void
   setShortcutSheetOpen: (open: boolean) => void
   setCommandPaletteOpen: (open: boolean) => void
   setSearchBarOpen: (open: boolean) => void
@@ -101,12 +103,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   searchResultTaskIds: null,
   savedViews: {},
   onboardingOpen: false,
+  helpOpen: false,
   commandPaletteCommands: [],
 
   setCurrentView: (view) => set({ currentView: view }),
   setCommandPaletteCommands: (commands) => set({ commandPaletteCommands: commands }),
   setPreviousView: (view) => set({ previousView: view }),
   setOnboardingOpen: (open) => set({ onboardingOpen: open }),
+  setHelpOpen: (open) => set({ helpOpen: open }),
   setShortcutSheetOpen: (open) => set({ shortcutSheetOpen: open }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setSearchBarOpen: (open) => set({ searchBarOpen: open }),

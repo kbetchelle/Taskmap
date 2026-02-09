@@ -52,7 +52,11 @@ export function ShortcutSheet() {
     () => Array.from(new Set(KEYBOARD_SHORTCUTS.map((s) => s.category))),
     []
   )
-  const mappings = useShortcutStore((s) => s.getAllMappings())
+  const mappingsMap = useShortcutStore((s) => s.mappings)
+  const mappings = useMemo(
+    () => Array.from(mappingsMap.values()),
+    [mappingsMap]
+  )
   const filtered = useMemo(
     () => filterShortcuts(KEYBOARD_SHORTCUTS, searchQuery, selectedCategory),
     [searchQuery, selectedCategory, mappings]

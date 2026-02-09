@@ -8,6 +8,7 @@ import { MobileColumnsView } from '../MobileColumnsView'
 import { Footer } from '../Footer'
 import { SettingsPanel } from '../SettingsPanel'
 import { ShortcutSheet } from '../ShortcutSheet'
+import { HelpSheet } from '../HelpSheet'
 import { SearchBarOverlay } from '../SearchBar/SearchBarOverlay'
 import { OnboardingFlow } from '../OnboardingFlow'
 import { FeedbackToast } from '../FeedbackToast'
@@ -31,6 +32,8 @@ export function AppContainer({ children }: AppContainerProps) {
   const setPreviousView = useAppStore((s) => s.setPreviousView)
   const searchBarOpen = useAppStore((s) => s.searchBarOpen)
   const onboardingOpen = useAppStore((s) => s.onboardingOpen)
+  const helpOpen = useAppStore((s) => s.helpOpen)
+  const setHelpOpen = useAppStore((s) => s.setHelpOpen)
   const pendingConflict = useConflictStore((s) => s.pendingConflict)
   const resolveConflict = useConflictStore((s) => s.resolveConflict)
   const cancelConflict = useConflictStore((s) => s.cancelConflict)
@@ -42,8 +45,16 @@ export function AppContainer({ children }: AppContainerProps) {
 
   return (
     <div className="w-screen h-screen flex flex-col overflow-hidden bg-flow-background">
-      <header className="flex-shrink-0 h-12 border-b border-flow-columnBorder flex items-center px-4">
+      <header className="flex-shrink-0 h-12 border-b border-flow-columnBorder flex items-center justify-between px-4">
         <h1 className="text-flow-dir font-flow-semibold text-flow-textPrimary">Flow</h1>
+        <button
+          type="button"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-flow-textSecondary hover:text-flow-textPrimary hover:bg-flow-columnBorder/30 transition-colors font-medium text-lg"
+          aria-label="Help – keyboard shortcuts and getting started"
+          onClick={() => setHelpOpen(true)}
+        >
+          ?
+        </button>
       </header>
       <main className="flex-1 min-h-0 flex flex-col relative">
         {currentView === 'settings' ? (
@@ -89,6 +100,7 @@ export function AppContainer({ children }: AppContainerProps) {
         <Footer />
       </footer>
       <ShortcutSheet />
+      <HelpSheet />
       <CommandPalette />
       {onboardingOpen && <OnboardingFlow />}
       <FeedbackToast />

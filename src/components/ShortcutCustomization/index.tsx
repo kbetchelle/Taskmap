@@ -21,7 +21,11 @@ interface ShortcutCustomizationProps {
 
 export function ShortcutCustomization({ open, onClose }: ShortcutCustomizationProps) {
   const { userId } = useAppContext()
-  const mappings = useShortcutStore((s) => s.getAllMappings())
+  const mappingsMap = useShortcutStore((s) => s.mappings)
+  const mappings = useMemo(
+    () => Array.from(mappingsMap.values()),
+    [mappingsMap]
+  )
   const updateShortcut = useShortcutStore((s) => s.updateShortcut)
   const resetToDefaultsAndPersist = useShortcutStore((s) => s.resetToDefaultsAndPersist)
 
