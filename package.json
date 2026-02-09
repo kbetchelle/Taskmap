@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-icons": "node scripts/generate-pwa-icons.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -18,6 +19,8 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "vite-plugin-pwa": "^0.21.1",
+    "sharp": "^0.33.0",
     "@eslint/js": "^9.13.0",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
