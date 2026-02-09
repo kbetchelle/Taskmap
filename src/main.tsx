@@ -20,6 +20,17 @@ const rootEl = document.getElementById('root')
 
 async function bootstrap() {
   try {
+    // Handle OAuth callback: exchange code for session before rendering
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (code) {
+      const { supabase } = await import('./lib/supabase')
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      if (!error) {
+        window.history.replaceState({}, '', window.location.pathname)
+      }
+    }
+
     const { default: App } = await import('./App.tsx')
     createRoot(rootEl!).render(
       <StrictMode>
