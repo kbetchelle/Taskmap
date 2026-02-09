@@ -24,9 +24,6 @@ export function AppContainer({ children }: AppContainerProps) {
   useMobileMode()
   const currentView = useAppStore((s) => s.currentView)
   const isMobile = useUIStore((s) => s.mobileMode)
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/ebc00a6d-3ac2-45ad-a3bd-a7d852883501',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AppContainer/index.tsx:render',message:'AppContainer render',data:{currentView},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
   const previousView = useAppStore((s) => s.previousView)
   const navigationPath = useAppStore((s) => s.navigationPath)
   const colorMode = useAppStore((s) => s.colorMode)

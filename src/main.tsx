@@ -16,10 +16,7 @@ const queryClient = new QueryClient({
   },
 })
 
-// #region agent log
 const rootEl = document.getElementById('root')
-fetch('http://127.0.0.1:7244/ingest/ebc00a6d-3ac2-45ad-a3bd-a7d852883501',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.tsx:root',message:'root element',data:{rootFound:!!rootEl},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-// #endregion
 
 async function bootstrap() {
   try {
@@ -33,13 +30,7 @@ async function bootstrap() {
         </QueryClientProvider>
       </StrictMode>,
     )
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/ebc00a6d-3ac2-45ad-a3bd-a7d852883501',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.tsx:render',message:'render called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
   } catch (e) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/ebc00a6d-3ac2-45ad-a3bd-a7d852883501',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.tsx:catch',message:'config error caught',data:{error:String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     const msg = e instanceof Error ? e.message : String(e)
     createRoot(rootEl!).render(
       <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif', maxWidth: 480 }}>

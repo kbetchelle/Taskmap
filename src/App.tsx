@@ -9,9 +9,6 @@ import { Login } from './pages/Login'
 
 function AppContent() {
   const { session } = useAuth()
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/ebc00a6d-3ac2-45ad-a3bd-a7d852883501',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:AppContent',message:'branch',data:{hasSession:!!session,showingLogin:!session},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
   if (!session) {
     return <Login />
   }
