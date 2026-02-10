@@ -469,7 +469,7 @@ export function ExpandedTaskPanelContent({
               Location
             </h3>
             <div className="text-[13px] text-flow-textSecondary font-mono">
-              {locationLoading ? '…' : locationPath.length === 0 ? 'Root' : locationPath.join(' › ')}
+              {locationLoading ? '…' : locationPath.length === 0 ? 'Home' : locationPath.join(' › ')}
             </div>
           </div>
         </div>

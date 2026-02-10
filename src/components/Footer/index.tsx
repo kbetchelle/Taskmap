@@ -73,12 +73,12 @@ export function Footer() {
 
   return (
     <footer
-      className={`flex-shrink-0 h-8 border-t border-flow-columnBorder px-4 flex items-center gap-4 text-flow-footer text-flow-textSecondary ${
+      className={`flex-shrink-0 h-8 border-t border-flow-columnBorder px-4 flex items-center justify-between gap-4 text-flow-footer text-flow-textSecondary ${
         isMobile ? 'hidden md:flex' : ''
       }`}
       style={{ minHeight: 32 }}
     >
-      <nav className="flex items-center gap-1" aria-label="Breadcrumb">
+      <nav className="flex items-center gap-1 min-w-0 flex-1" aria-label="Breadcrumb">
         {breadcrumbNames.map((name, i) => (
           <span key={i} className="flex items-center gap-1">
             {i > 0 && <span className="text-flow-textDisabled">›</span>}
@@ -88,34 +88,35 @@ export function Footer() {
           </span>
         ))}
       </nav>
-      <span className="text-flow-textDisabled">|</span>
-      <span>{viewLabel}</span>
-      <span className="text-flow-textDisabled">|</span>
-      <span>{colorLabel}</span>
-      {activeFilterCount > 0 && (
-        <>
-          <span className="text-flow-textDisabled">|</span>
-          <span>{activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''}</span>
-        </>
-      )}
-      {selectedItemCount > 0 && (
-        <>
-          <span className="text-flow-textDisabled">|</span>
-          <span>{selectedItemCount} selected</span>
-        </>
-      )}
-      {searchResultTaskIds != null && (
-        <>
-          <span className="text-flow-textDisabled">|</span>
-          <span>{searchResultTaskIds.length} result{searchResultTaskIds.length !== 1 ? 's' : ''}</span>
-        </>
-      )}
-      {itemCount != null && (
-        <>
-          <span className="text-flow-textDisabled">|</span>
-          <span>{itemCount} active</span>
-        </>
-      )}
+      <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+        <span>{viewLabel}</span>
+        <span className="text-flow-textDisabled">|</span>
+        <span>{colorLabel}</span>
+        {activeFilterCount > 0 && (
+          <>
+            <span className="text-flow-textDisabled">|</span>
+            <span>{activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''}</span>
+          </>
+        )}
+        {selectedItemCount > 0 && (
+          <>
+            <span className="text-flow-textDisabled">|</span>
+            <span>{selectedItemCount} selected</span>
+          </>
+        )}
+        {searchResultTaskIds != null && (
+          <>
+            <span className="text-flow-textDisabled">|</span>
+            <span>{searchResultTaskIds.length} result{searchResultTaskIds.length !== 1 ? 's' : ''}</span>
+          </>
+        )}
+        {itemCount != null && (
+          <>
+            <span className="text-flow-textDisabled">|</span>
+            <span>{itemCount} active</span>
+          </>
+        )}
+      </div>
     </footer>
   )
 }

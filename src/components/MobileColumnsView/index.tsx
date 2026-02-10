@@ -678,7 +678,7 @@ export function MobileColumnsView({
 
   const headerLabel =
     currentDirectoryId == null
-      ? 'Root'
+      ? 'Home'
       : directories.find((d) => d.id === currentDirectoryId)?.name ?? ''
 
   return (
@@ -701,7 +701,7 @@ export function MobileColumnsView({
         <Column
           columnIndex={columnIndex}
           directoryId={currentDirectoryId}
-          directoryName={headerLabel === 'Root' ? null : headerLabel}
+          directoryName={headerLabel === 'Home' ? null : headerLabel}
           items={getItemsForColumn(columnIndex)}
           usePagination={
             !!currentDirectoryId &&

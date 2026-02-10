@@ -5,6 +5,7 @@ import { useDirectoryContents } from '../../hooks/useDirectoryContents'
 import type { ColorMode } from '../../types/state'
 import type { CreationState, InlineEditState } from '../../stores/uiStore'
 import { COLUMN_WIDTH_PX } from '../../lib/theme'
+import { getEmptySlotId } from '../../lib/emptySlot'
 import { DirectoryItem } from '../DirectoryItem'
 import { TaskItem } from '../TaskItem'
 import { TypeSelectorRow } from '../TypeSelectorRow'
@@ -76,6 +77,7 @@ export function Column({
   items,
   selectedItemIds,
   focusedItemId,
+  isActive,
   onItemSelect,
   onItemExpand,
   colorMode,
@@ -99,7 +101,7 @@ export function Column({
   onTaskSwipeLeft,
   onTaskLongPress,
 }: ColumnProps) {
-  const headerLabel = directoryId == null ? 'Root' : directoryName ?? ''
+  const headerLabel = directoryId == null ? 'Home' : directoryName ?? ''
   const [dropIndex, setDropIndex] = useState<number>(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const ROW_ESTIMATE = 40
@@ -246,17 +248,6 @@ export function Column({
       role="region"
       aria-label={`Column ${columnIndex + 1}: ${headerLabel}`}
     >
-      <header
-        className="flex-shrink-0 h-11 px-4 border-b border-flow-columnBorder flex items-center justify-between"
-        style={{ minHeight: 44 }}
-      >
-        <span className="text-flow-dir font-flow-semibold text-flow-textPrimary truncate">
-          {headerLabel}
-        </span>
-        <span className="text-flow-meta text-flow-textSecondary flex-shrink-0 ml-2">
-          {displayItems.length} {displayItems.length === 1 ? 'item' : 'items'}
-        </span>
-      </header>
       <div
         ref={scrollRef}
         className="column-content flex-1 overflow-y-auto overflow-x-hidden py-2"
@@ -264,8 +255,23 @@ export function Column({
         onDrop={handleDrop}
         onScroll={usePagination && directoryId != null ? handleScroll : undefined}
       >
-        {!hasRows && creationState?.mode !== 'type-select' ? (
-          <p className="text-flow-meta text-flow-textSecondary px-4 py-2">No items</p>
+        {!hasRows &&
+        !(creationState?.mode === 'type-select' && creationState?.columnIndex === columnIndex && creationState?.itemId) &&
+        !(creationState?.mode === 'directory-naming' && creationState?.columnIndex === columnIndex && creationState?.itemId) ? (
+          isActive ? (
+            <div
+              role="row"
+              tabIndex={-1}
+              data-item-id={getEmptySlotId(columnIndex)}
+              className={`min-h-[32px] py-2 px-3 flex items-center text-flow-meta text-flow-textSecondary border-b border-transparent ${focusedItemId === getEmptySlotId(columnIndex) ? 'item-focused' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onColumnFocus()
+              }}
+            />
+          ) : (
+            <p className="text-flow-meta text-flow-textSecondary px-4 py-2">No items</p>
+          )
         ) : !hasRows && creationState?.mode === 'type-select' && creationState.columnIndex === columnIndex && creationState.itemId ? (
           <TypeSelectorRow itemId={creationState.itemId} />
         ) : !hasRows && creationState?.mode === 'directory-naming' && creationState.columnIndex === columnIndex && creationState.itemId ? (

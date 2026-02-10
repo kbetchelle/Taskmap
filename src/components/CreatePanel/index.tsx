@@ -42,7 +42,7 @@ export function CreatePanel({
       return
     }
     if (kind === 'task' && directoryId == null) {
-      setErrors(['Select a directory first. Tasks cannot be created at root (Column 1).'])
+      setErrors(['Select a directory first. Tasks cannot be created at Home (Column 1).'])
       return
     }
     setLoading(true)

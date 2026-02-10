@@ -15,6 +15,7 @@ import { createNextRecurrence } from '../../api/tasks'
 import type { ColorMode, ClipboardItem, SavedView, FilterState } from '../../types/state'
 import { savedViewToRow } from '../../lib/savedViews'
 import { formatShortcutForDisplay } from '../../lib/platform'
+import { getEmptySlotId, isEmptySlotId, getColumnIndexFromEmptySlotId } from '../../lib/emptySlot'
 import { useShortcutStore } from '../../lib/shortcutManager'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { searchTasks as searchTasksApi } from '../../api/search'
@@ -235,12 +236,14 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     const prevCol = focusedColumnIndex - 1
     setFocusedColumnIndex(prevCol)
     const prevItems = getItemsForColumn(prevCol)
-    if (last && prevItems.some((i) => i.id === last.itemId)) {
+    const lastIsEmptySlotForPrev =
+      last && isEmptySlotId(last.itemId) && getColumnIndexFromEmptySlotId(last.itemId) === prevCol
+    if (last && (prevItems.some((i) => i.id === last.itemId) || lastIsEmptySlotForPrev)) {
       setFocusedItem(last.itemId)
     } else if (prevItems.length > 0) {
       setFocusedItem(prevItems[0].id)
     } else {
-      setFocusedItem(null)
+      setFocusedItem(getEmptySlotId(prevCol))
     }
     setTimeout(() => scrollToColumn(prevCol), 50)
   }, [
@@ -313,7 +316,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     const newCol = columnIds.length
     setFocusedColumnIndex(newCol)
     const newItems = getItemsForColumn(newCol)
-    setFocusedItem(newItems.length > 0 ? newItems[0].id : null)
+    setFocusedItem(newItems.length > 0 ? newItems[0].id : getEmptySlotId(newCol))
     setTimeout(() => scrollToColumn(newCol), 50)
   }, [
     focusedColumnIndex,
@@ -410,7 +413,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     scrollToStart()
     setFocusedColumnIndex(0)
     const items = getItemsForColumn(0)
-    setFocusedItem(items.length > 0 ? items[0].id : null)
+    setFocusedItem(items.length > 0 ? items[0].id : getEmptySlotId(0))
   }, [scrollToStart, setFocusedColumnIndex, setFocusedItem, getItemsForColumn])
 
   const handleScrollEnd = useCallback(() => {
@@ -418,7 +421,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     const lastCol = columnIds.length - 1
     setFocusedColumnIndex(lastCol)
     const items = getItemsForColumn(lastCol)
-    setFocusedItem(items.length > 0 ? items[0].id : null)
+    setFocusedItem(items.length > 0 ? items[0].id : getEmptySlotId(lastCol))
   }, [scrollToEnd, columnIds.length, setFocusedColumnIndex, setFocusedItem, getItemsForColumn])
 
   const handleCmdArrowUp = useCallback(() => {
@@ -471,7 +474,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const handleCreationTypeTask = useCallback(() => {
     if (!creationState?.itemId) return
     if (focusedColumnIndex === 0) {
-      showInlineError(creationState.itemId, "No tasks in Root. Press D for Directory or Esc to cancel.")
+      showInlineError(creationState.itemId, "No tasks in Home. Press D for Directory or Esc to cancel.")
       return
     }
     const tid = useUIStore.getState().creationTimeoutId
@@ -507,6 +510,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     [creationState?.itemId]
   )
 
+  // New item is scoped to the column by creationState.columnIndex (degree of separation from root).
   const saveDirectory = useCallback(
     async (itemId: string, name: string) => {
       if (!creationState || !userId) return
@@ -789,7 +793,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
         )
         setFocusedItem(remaining[idx >= 0 ? idx : 0].id)
       } else {
-        setFocusedItem(null)
+        setFocusedItem(getEmptySlotId(focusedColumnIndex))
       }
     },
     [
@@ -1077,7 +1081,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     if (focusedColumnIndex === 0 && clipboardItems.some((c) => c.type === 'task')) {
       showInlineError(
         focusedItemId ?? 'paste',
-        'Cannot paste tasks in Root. Navigate into a directory first.'
+        'Cannot paste tasks in Home. Navigate into a directory first.'
       )
       return
     }
@@ -1133,7 +1137,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     if (focusedColumnIndex === 0 && clipboardItems.some((c) => c.type === 'task')) {
       showInlineError(
         focusedItemId ?? 'paste',
-        'Cannot paste tasks in Root. Navigate into a directory first.'
+        'Cannot paste tasks in Home. Navigate into a directory first.'
       )
       return
     }
@@ -1276,7 +1280,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     const commands = [
       { id: 'goto-main', label: 'Go to Today View', category: 'Navigation', action: () => setCurrentView('main_db'), shortcut: getShortcut('mainView') },
       { id: 'goto-upcoming', label: 'Go to Upcoming View', category: 'Navigation', action: () => setCurrentView('upcoming'), shortcut: getShortcut('upcomingView') },
-      { id: 'goto-root', label: 'Go to Root', category: 'Navigation', action: handleScrollHome, shortcut: 'Home' },
+      { id: 'goto-root', label: 'Go to Home', category: 'Navigation', action: handleScrollHome, shortcut: 'Home' },
       { id: 'create', label: 'Create task or directory', category: 'Creation', action: initiateCreation, shortcut: getShortcut('newTask') },
       { id: 'color-none', label: 'No color mode', category: 'View', action: () => setColorMode('none'), shortcut: getShortcut('colorNone') },
       { id: 'color-category', label: 'Category color mode', category: 'View', action: () => setColorMode('category'), shortcut: getShortcut('colorCategory') },
@@ -1363,10 +1367,12 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
 
   useEffect(() => {
     if (navigationPath.length > 0) return
+    setFocusedColumnIndex(0)
     const items = getItemsForColumn(0)
     if (items.length > 0 && focusedItemId == null) {
       setFocusedItem(items[0].id)
-      setFocusedColumnIndex(0)
+    } else if (items.length === 0) {
+      setFocusedItem(getEmptySlotId(0))
     }
   }, [navigationPath.length, focusedItemId, setFocusedItem, setFocusedColumnIndex, directories.length, tasks.length])
 
@@ -1406,7 +1412,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
         `This path is ${newCol} levels deep (max 15). Consider restructuring.`
       )
     }
-    setFocusedItem(newItems.length > 0 ? newItems[0].id : null)
+    setFocusedItem(newItems.length > 0 ? newItems[0].id : getEmptySlotId(newCol))
     setTimeout(() => scrollToColumn(newCol), 50)
   }
 
@@ -1422,6 +1428,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     setSelectionAnchorIndex(null)
   }
 
+  // Task panel uses creationState.columnIndex so the new task appears only in its assigned column.
   const taskPanelDirectoryId =
     creationState?.mode === 'task-panel' && creationState.columnIndex > 0
       ? (columnIds[creationState.columnIndex] as string)
@@ -1462,7 +1469,11 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
           colorMode={colorMode}
           viewMode={viewMode}
           searchQuery={activeFilters.searchQuery.trim() || undefined}
-          onColumnFocus={() => setFocusedColumnIndex(columnIndex)}
+          onColumnFocus={() => {
+            setFocusedColumnIndex(columnIndex)
+            const colItems = getItemsForColumn(columnIndex)
+            setFocusedItem(colItems.length > 0 ? colItems[0].id : getEmptySlotId(columnIndex))
+          }}
           childCountByDirectoryId={childCountByDirectoryId}
           creationState={creationState}
           onDirectorySave={saveDirectory}

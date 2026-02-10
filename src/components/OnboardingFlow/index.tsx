@@ -99,13 +99,13 @@ export function OnboardingFlow() {
         )
       } catch {
         useFeedbackStore.getState().showTooltip(
-          `Press ${newTaskShortcut} in the Root column to create your first project`,
+          `Press ${newTaskShortcut} in the Home column to create your first project`,
           5000
         )
       }
     } else {
       useFeedbackStore.getState().showTooltip(
-        `Press ${newTaskShortcut} in the Root column to create your first project`,
+        `Press ${newTaskShortcut} in the Home column to create your first project`,
         5000
       )
     }
