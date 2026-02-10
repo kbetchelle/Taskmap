@@ -1414,6 +1414,24 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     }
     setFocusedItem(newItems.length > 0 ? newItems[0].id : getEmptySlotId(newCol))
     setTimeout(() => scrollToColumn(newCol), 50)
+
+    // When a new column opens, assume the user is adding a task or directory and wait for typing.
+    const tid = useUIStore.getState().creationTimeoutId
+    if (tid != null) clearTimeout(tid)
+    setCreationTimeoutId(null)
+    const newItemId = crypto.randomUUID()
+    setCreationState({
+      mode: 'directory-naming',
+      itemId: newItemId,
+      columnIndex: newCol,
+      itemIndex: newItems.length,
+    })
+    pushKeyboardContext('creation')
+    const timeoutId = setTimeout(() => {
+      cancelCreation()
+      popKeyboardContext()
+    }, CREATION_TIMEOUT_MS)
+    setCreationTimeoutId(timeoutId)
   }
 
   const handleItemSelect = (id: string, event?: React.MouseEvent) => {
