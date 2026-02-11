@@ -10,4 +10,5 @@ export { useColumnScroll, calculateMinColumnsBeforeScroll } from './useColumnScr
 export { useDirectoryContents } from './useDirectoryContents'
 export { useUpdateTask } from './useUpdateTask'
 export { useMobileMode } from './useMobileMode'
+export { useViewport } from './useViewport'
 export { useTouchGestures } from './useTouchGestures'
