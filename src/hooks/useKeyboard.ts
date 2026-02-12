@@ -68,6 +68,13 @@ interface UseKeyboardOptions {
   // Phase 7: settings panel (when context === 'settings')
   onSettingsSave?: ShortcutHandler
   onSettingsClose?: ShortcutHandler
+  // Sidebar tree (when context === 'sidebar')
+  onSidebarArrowUp?: ShortcutHandler
+  onSidebarArrowDown?: ShortcutHandler
+  onSidebarArrowLeft?: ShortcutHandler
+  onSidebarArrowRight?: ShortcutHandler
+  onSidebarEnter?: ShortcutHandler
+  onSidebarEscape?: ShortcutHandler
   enabled?: boolean
 }
 
@@ -89,6 +96,10 @@ function isEditingContext(): boolean {
 
 function isSettingsContext(): boolean {
   return useAppStore.getState().getCurrentKeyboardContext() === 'settings'
+}
+
+function isSidebarContext(): boolean {
+  return useAppStore.getState().getCurrentKeyboardContext() === 'sidebar'
 }
 
 export function useKeyboard({
@@ -144,6 +155,12 @@ export function useKeyboard({
   onOpenAllAttachments,
   onSettingsSave,
   onSettingsClose,
+  onSidebarArrowUp,
+  onSidebarArrowDown,
+  onSidebarArrowLeft,
+  onSidebarArrowRight,
+  onSidebarEnter,
+  onSidebarEscape,
   enabled = true,
 }: UseKeyboardOptions = {}) {
   const handleKeyDown = useCallback(
@@ -151,6 +168,41 @@ export function useKeyboard({
       if (!enabled) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         if (e.target.getAttribute('data-keyboard-ignore') != null) return
+      }
+
+      // Sidebar context — arrow keys, Enter, Escape
+      if (isSidebarContext()) {
+        if (matchShortcut(e, getShortcut('arrowUp')) && !e.shiftKey && onSidebarArrowUp) {
+          e.preventDefault()
+          onSidebarArrowUp()
+          return
+        }
+        if (matchShortcut(e, getShortcut('arrowDown')) && !e.shiftKey && onSidebarArrowDown) {
+          e.preventDefault()
+          onSidebarArrowDown()
+          return
+        }
+        if (matchShortcut(e, getShortcut('arrowLeft')) && onSidebarArrowLeft) {
+          e.preventDefault()
+          onSidebarArrowLeft()
+          return
+        }
+        if (matchShortcut(e, getShortcut('arrowRight')) && onSidebarArrowRight) {
+          e.preventDefault()
+          onSidebarArrowRight()
+          return
+        }
+        if (matchShortcut(e, getShortcut('enter')) && onSidebarEnter) {
+          e.preventDefault()
+          onSidebarEnter()
+          return
+        }
+        if (matchShortcut(e, getShortcut('escape')) && onSidebarEscape) {
+          e.preventDefault()
+          onSidebarEscape()
+          return
+        }
+        return
       }
 
       // Phase 7: settings context — Enter save, Escape close
@@ -488,6 +540,12 @@ export function useKeyboard({
       onOpenAllAttachments,
       onSettingsSave,
       onSettingsClose,
+      onSidebarArrowUp,
+      onSidebarArrowDown,
+      onSidebarArrowLeft,
+      onSidebarArrowRight,
+      onSidebarEnter,
+      onSidebarEscape,
     ]
   )
 
