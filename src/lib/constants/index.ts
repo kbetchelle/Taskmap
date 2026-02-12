@@ -78,6 +78,7 @@ export const SHORTCUTS = {
   UPCOMING_VIEW: 'mod+shift+l',
   ARCHIVE_VIEW: 'mod+shift+a',
   COMMAND_PALETTE: 'mod+k',
+  QUICK_ACTIONS_ALT: 'ctrl+p',
   SEARCH_OPEN: 'mod+shift+s',
   COMPLETED_TOGGLE: 'mod+shift+h',
   SAVE_VIEW: 'mod+alt+s',

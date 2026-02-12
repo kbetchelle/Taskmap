@@ -1351,6 +1351,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const handleBackslashMenuExecute = useCallback(
     async (commandId: string) => {
       backslashMenu.closeMenu()
+      useAppStore.getState().pushRecentAction(commandId)
 
       switch (commandId) {
         case 'edit':

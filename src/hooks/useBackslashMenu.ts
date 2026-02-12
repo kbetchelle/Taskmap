@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useMemo } from 'react'
 import { getCommands, type Command } from '../lib/commandRegistry'
 import { fuzzyFilterCommands } from '../lib/utils/fuzzyMatch'
 import { computeMenuPosition } from '../lib/utils/menuPositioning'
+import { useAppStore } from '../stores/appStore'
 
 const MENU_WIDTH = 280
 const MENU_HEIGHT_ESTIMATE = 288 // ~8 items × 36px
@@ -93,6 +94,9 @@ export function useBackslashMenu(
 
       close()
       command.action()
+
+      // Track as a recent action for the command palette
+      useAppStore.getState().pushRecentAction(command.id)
 
       // Notify ContentEditor that content changed so autosave picks it up
       const editor = editorRef.current

@@ -297,7 +297,7 @@ export function useKeyboard({
         onArchiveView()
         return
       }
-      if (matchShortcut(e, getShortcut('commandPalette')) && onCommandPalette) {
+      if ((matchShortcut(e, getShortcut('commandPalette')) || matchShortcut(e, 'ctrl+p')) && onCommandPalette) {
         e.preventDefault()
         onCommandPalette()
         return
