@@ -25,6 +25,8 @@ import { TaskEditPanel } from '../TaskEditPanel'
 import { DirectoryEditPanel } from '../DirectoryEditPanel'
 import { DeleteConfirmationDialog } from '../DeleteConfirmationDialog'
 import { ExpandedTaskPanel } from '../ExpandedTaskPanel'
+import { BackslashMenu } from '../BackslashMenu'
+import { useBackslashMenu } from '../BackslashMenu/useBackslashMenu'
 
 interface ColumnsViewProps {
   viewMode: 'main_db' | 'upcoming'
@@ -1335,6 +1337,148 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     shortcutMappings,
   ])
 
+  // ── Backslash command menu ──────────────────────────────────────────
+  const backslashMenu = useBackslashMenu()
+
+  const handleBackslashMenuOpen = useCallback(() => {
+    backslashMenu.openMenu()
+  }, [backslashMenu.openMenu])
+
+  const handleBackslashMenuClose = useCallback(() => {
+    backslashMenu.closeMenu()
+  }, [backslashMenu.closeMenu])
+
+  const handleBackslashMenuExecute = useCallback(
+    async (commandId: string) => {
+      backslashMenu.closeMenu()
+
+      switch (commandId) {
+        case 'edit':
+          startFullEdit()
+          break
+        case 'complete':
+          handleSpace()
+          break
+        case 'duplicate': {
+          const items = getItemsForColumn(focusedColumnIndex)
+          const item = focusedItemId ? items.find((i) => i.id === focusedItemId) : undefined
+          if (!item || !userId) break
+          if (isTask(item)) {
+            const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = item
+            try {
+              await addTask({ ...rest, title: `${item.title} (copy)`, position: item.position + 0.5 })
+              useFeedbackStore.getState().showSuccess('Task duplicated')
+            } catch {
+              useFeedbackStore.getState().showError('Failed to duplicate task')
+            }
+          } else {
+            try {
+              await addDirectory({
+                name: `${item.name} (copy)`,
+                parent_id: item.parent_id,
+                start_date: item.start_date,
+                position: item.position + 0.5,
+                depth_level: item.depth_level,
+                user_id: userId,
+              })
+              useFeedbackStore.getState().showSuccess('Directory duplicated')
+            } catch {
+              useFeedbackStore.getState().showError('Failed to duplicate directory')
+            }
+          }
+          break
+        }
+        case 'link-to':
+          useFeedbackStore.getState().showInfo('Link to... coming in Build 3B')
+          break
+        case 'move-to':
+          useFeedbackStore.getState().showInfo('Move to... coming soon')
+          break
+        case 'set-priority': {
+          const items = getItemsForColumn(focusedColumnIndex)
+          const item = focusedItemId ? items.find((i) => i.id === focusedItemId) : undefined
+          if (!item || !isTask(item)) break
+          const cycle: (Task['priority'])[] = ['HIGH', 'MED', 'LOW', null]
+          const currentIdx = cycle.indexOf(item.priority)
+          const nextPriority = cycle[(currentIdx + 1) % cycle.length]
+          try {
+            await updateTask(item.id, { priority: nextPriority })
+            useFeedbackStore.getState().showSuccess(
+              nextPriority ? `Priority set to ${nextPriority}` : 'Priority cleared',
+            )
+          } catch {
+            useFeedbackStore.getState().showError('Failed to set priority')
+          }
+          break
+        }
+        case 'set-due-date':
+          useFeedbackStore.getState().showInfo('Date picker coming soon')
+          break
+        case 'delete':
+          initiateDelete()
+          break
+        case 'new-task':
+          initiateCreation()
+          // Simulate pressing 'T' after creation type-select opens
+          setTimeout(() => handleCreationTypeTask(), 50)
+          break
+        case 'new-directory':
+          initiateCreation()
+          setTimeout(() => handleCreationTypeDirectory(), 50)
+          break
+        // Multi-item commands
+        case 'complete-all': {
+          const taskIds = selectedItemIds.filter((id) =>
+            tasks.some((t) => t.id === id && !t.is_completed),
+          )
+          for (const id of taskIds) {
+            try {
+              await updateTask(id, {
+                is_completed: true,
+                completed_at: new Date().toISOString(),
+              })
+            } catch {
+              // continue with others
+            }
+          }
+          if (taskIds.length > 0) {
+            useFeedbackStore.getState().showSuccess(`Completed ${taskIds.length} task(s)`)
+          }
+          break
+        }
+        case 'move-all':
+          useFeedbackStore.getState().showInfo('Move all... coming soon')
+          break
+        case 'set-priority-all':
+          useFeedbackStore.getState().showInfo('Set priority for all... coming soon')
+          break
+        case 'delete-all':
+          initiateDelete()
+          break
+        default:
+          break
+      }
+    },
+    [
+      backslashMenu.closeMenu,
+      startFullEdit,
+      handleSpace,
+      getItemsForColumn,
+      focusedColumnIndex,
+      focusedItemId,
+      userId,
+      addTask,
+      addDirectory,
+      updateTask,
+      initiateDelete,
+      initiateCreation,
+      handleCreationTypeTask,
+      handleCreationTypeDirectory,
+      selectedItemIds,
+      tasks,
+    ],
+  )
+
   useKeyboard({
     onMainView: () => setCurrentView('main_db'),
     onUpcomingView: () => setCurrentView('upcoming'),
@@ -1384,6 +1528,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     onCmdArrowUp: handleCmdArrowUp,
     onCmdArrowDown: handleCmdArrowDown,
     onCmdSlash: () => setShortcutSheetOpen(true),
+    onBackslashMenu: handleBackslashMenuOpen,
     enabled: true,
   })
 
@@ -1577,6 +1722,17 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
           childCountByDirectoryId={childCountByDirectoryId}
           onConfirm={handleDeleteConfirm}
           onCancel={handleDeleteCancel}
+        />
+      )}
+      {backslashMenu.isOpen && (
+        <BackslashMenu
+          commands={backslashMenu.filteredCommands}
+          query={backslashMenu.query}
+          onQueryChange={backslashMenu.setQuery}
+          onExecute={handleBackslashMenuExecute}
+          onClose={handleBackslashMenuClose}
+          position={backslashMenu.position}
+          isMobile={backslashMenu.isMobile}
         />
       )}
       {expandedTaskId && (() => {

@@ -116,6 +116,11 @@ export function Footer() {
             <span>{itemCount} active</span>
           </>
         )}
+        <span className="text-flow-textDisabled">|</span>
+        <span className="text-flow-textDisabled">
+          <kbd className="rounded border border-flow-columnBorder bg-flow-background px-1 py-px text-[10px] font-flow-medium">\</kbd>
+          {' '}actions
+        </span>
       </div>
     </footer>
   )

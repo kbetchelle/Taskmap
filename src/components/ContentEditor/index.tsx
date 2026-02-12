@@ -3,7 +3,7 @@ import { EditorToolbar } from './EditorToolbar'
 import { useMarkdownShortcuts } from './useMarkdownShortcuts'
 import { useAutoSave } from '../../hooks/useAutoSave'
 import { useBackslashMenu } from '../../hooks/useBackslashMenu'
-import { BackslashMenu } from '../BackslashMenu'
+import { EditorMenu as BackslashMenu } from '../BackslashMenu/EditorMenu'
 import { sanitizeHTML, escapeHTML } from '../../lib/sanitizeHTML'
 
 interface ContentEditorProps {

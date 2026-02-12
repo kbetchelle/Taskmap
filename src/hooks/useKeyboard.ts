@@ -75,6 +75,8 @@ interface UseKeyboardOptions {
   onSidebarArrowRight?: ShortcutHandler
   onSidebarEnter?: ShortcutHandler
   onSidebarEscape?: ShortcutHandler
+  // Backslash command menu
+  onBackslashMenu?: ShortcutHandler
   enabled?: boolean
 }
 
@@ -161,6 +163,7 @@ export function useKeyboard({
   onSidebarArrowRight,
   onSidebarEnter,
   onSidebarEscape,
+  onBackslashMenu,
   enabled = true,
 }: UseKeyboardOptions = {}) {
   const handleKeyDown = useCallback(
@@ -268,6 +271,14 @@ export function useKeyboard({
           onOpenAllAttachments()
           return
         }
+      }
+
+      // Command menu context — block all keys from reaching other handlers.
+      // The BackslashMenu component handles its own keyboard events via the
+      // focused input (arrows, Enter, Tab, Escape, typing).
+      if (useAppStore.getState().getCurrentKeyboardContext() === 'command_menu') {
+        e.preventDefault()
+        return
       }
 
       const nav = isNavigationContext()
@@ -485,6 +496,12 @@ export function useKeyboard({
         onCut()
         return
       }
+      // Backslash command menu — only in navigation context
+      if (e.key === '\\' && !e.metaKey && !e.ctrlKey && !e.altKey && onBackslashMenu) {
+        e.preventDefault()
+        onBackslashMenu()
+        return
+      }
     },
     [
       enabled,
@@ -546,6 +563,7 @@ export function useKeyboard({
       onSidebarArrowRight,
       onSidebarEnter,
       onSidebarEscape,
+      onBackslashMenu,
     ]
   )
 

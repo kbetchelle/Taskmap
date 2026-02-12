@@ -35,6 +35,8 @@ interface AppStoreState {
   onboardingOpen: boolean
   helpOpen: boolean
   commandPaletteCommands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>
+  backslashMenuOpen: boolean
+  backslashMenuPosition: { top: number; left: number } | null
 
   setCurrentView: (view: CurrentView) => void
   setCommandPaletteCommands: (commands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>) => void
@@ -42,6 +44,8 @@ interface AppStoreState {
   setOnboardingOpen: (open: boolean) => void
   setHelpOpen: (open: boolean) => void
   setShortcutSheetOpen: (open: boolean) => void
+  setBackslashMenuOpen: (open: boolean, position?: { top: number; left: number }) => void
+  closeBackslashMenu: () => void
   setCommandPaletteOpen: (open: boolean) => void
   setSearchBarOpen: (open: boolean) => void
   setSearchResultTaskIds: (ids: string[] | null) => void
@@ -105,6 +109,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   onboardingOpen: false,
   helpOpen: false,
   commandPaletteCommands: [],
+  backslashMenuOpen: false,
+  backslashMenuPosition: null,
 
   setCurrentView: (view) => set({ currentView: view }),
   setCommandPaletteCommands: (commands) => set({ commandPaletteCommands: commands }),
@@ -112,6 +118,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   setOnboardingOpen: (open) => set({ onboardingOpen: open }),
   setHelpOpen: (open) => set({ helpOpen: open }),
   setShortcutSheetOpen: (open) => set({ shortcutSheetOpen: open }),
+  setBackslashMenuOpen: (open, position) =>
+    set({ backslashMenuOpen: open, backslashMenuPosition: position ?? null }),
+  closeBackslashMenu: () => set({ backslashMenuOpen: false, backslashMenuPosition: null }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setSearchBarOpen: (open) => set({ searchBarOpen: open }),
   setSearchResultTaskIds: (ids) => set({ searchResultTaskIds: ids }),
