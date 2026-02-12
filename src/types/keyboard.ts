@@ -8,6 +8,7 @@ export type KeyboardContext =
   | 'settings'
   | 'confirmation'
   | 'shortcut-sheet'
+  | 'sidebar'
 
 export interface FocusHistoryItem {
   columnIndex: number
