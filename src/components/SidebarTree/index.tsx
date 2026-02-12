@@ -5,7 +5,7 @@ import { useAppStore } from '../../stores/appStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useSidebarStore } from '../../stores/sidebarStore'
 import { useViewport } from '../../hooks/useViewport'
-import { useKeyboard } from '../../hooks/useKeyboard'
+import { useActions } from '../../lib/actionRegistry'
 import {
   buildTree,
   flattenVisibleTree,
@@ -25,7 +25,6 @@ export function SidebarTree() {
   const pushKeyboardContext = useAppStore((s) => s.pushKeyboardContext)
   const popKeyboardContext = useAppStore((s) => s.popKeyboardContext)
   const breakpoint = useViewport().breakpoint
-  const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen)
   const sidebarFilter = useSidebarStore((s) => s.sidebarFilter)
   const expandedSidebarNodes = useSidebarStore((s) => s.expandedSidebarNodes)
@@ -213,14 +212,13 @@ export function SidebarTree() {
     }
   }, [popKeyboardContext, setFocusedSidebarNodeId])
 
-  useKeyboard({
-    onSidebarArrowUp: handleSidebarArrowUp,
-    onSidebarArrowDown: handleSidebarArrowDown,
-    onSidebarArrowLeft: handleSidebarArrowLeft,
-    onSidebarArrowRight: handleSidebarArrowRight,
-    onSidebarEnter: handleSidebarEnter,
-    onSidebarEscape: handleSidebarEscape,
-    enabled: sidebarOpen,
+  useActions({
+    sidebarArrowUp: handleSidebarArrowUp,
+    sidebarArrowDown: handleSidebarArrowDown,
+    sidebarArrowLeft: handleSidebarArrowLeft,
+    sidebarArrowRight: handleSidebarArrowRight,
+    sidebarEnter: handleSidebarEnter,
+    sidebarEscape: handleSidebarEscape,
   })
 
   return (

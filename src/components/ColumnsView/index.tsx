@@ -6,7 +6,8 @@ import { useUIStore } from '../../stores/uiStore'
 import { useAppContext } from '../../contexts/AppContext'
 import { COLUMN_WIDTH_PX } from '../../lib/theme'
 import { useColumnScroll } from '../../hooks/useColumnScroll'
-import { useKeyboard } from '../../hooks/useKeyboard'
+import { useGrabMode } from '../../hooks/useGrabMode'
+import { useActions } from '../../lib/actionRegistry'
 import { showInlineError } from '../../lib/inlineError'
 import { pushUndoAndPersist, performUndo, performRedo, loadMoreUndoHistory } from '../../lib/undo'
 import { useFeedbackStore } from '../../stores/feedbackStore'
@@ -1337,6 +1338,9 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     shortcutMappings,
   ])
 
+  // ── Grab mode (keyboard-driven drag) ─────────────────────────────────
+  useGrabMode({ getItemsForColumn })
+
   // ── Backslash command menu ──────────────────────────────────────────
   const backslashMenu = useBackslashMenu()
 
@@ -1480,57 +1484,70 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     ],
   )
 
-  useKeyboard({
-    onMainView: () => setCurrentView('main_db'),
-    onUpcomingView: () => setCurrentView('upcoming'),
-    onArchiveView: handleOpenArchive,
-    onSettings: handleOpenSettings,
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-    onCommandPalette: handleOpenCommandPalette,
-    onSearch: handleOpenSearch,
-    onSearchClose: handleSearchClose,
-    onToggleShowCompleted: handleToggleShowCompleted,
-    onSaveView: handleSaveView,
-    onLoadSavedView: handleLoadSavedView,
-    onScrollLeft: scrollLeft,
-    onScrollRight: scrollRight,
-    onScrollHome: handleScrollHome,
-    onScrollEnd: handleScrollEnd,
-    onColorNone: () => setColorMode('none'),
-    onColorCategory: () => setColorMode('category'),
-    onColorPriority: () => setColorMode('priority'),
-    onInitiateCreation: initiateCreation,
-    onCreationTypeTask: handleCreationTypeTask,
-    onCreationTypeDirectory: handleCreationTypeDirectory,
-    onCreationEscape: handleCancelCreation,
-    onCreationInvalidKey: handleCreationInvalidKey,
-    onQuickEdit: startQuickEdit,
-    onFullEdit: startFullEdit,
-    onDelete: initiateDelete,
-    onCopy: copyShallow,
-    onCopyRecursive: copyRecursive,
-    onCut: cut,
-    onPaste: paste,
-    onPasteWithMetadata: pasteWithMetadata,
-    onArrowUp: moveFocusUp,
-    onArrowDown: moveFocusDown,
-    onArrowLeft: collapseColumn,
-    onArrowRight: handleEnterOrArrowRight,
-    onEnter: handleEnterOrArrowRight,
-    onEscape: handleEscape,
-    onExitEditing: handleExitEditing,
-    onAddAttachment: handleAddAttachment,
-    onOpenAllAttachments: handleOpenAllAttachments,
-    onSpace: handleSpace,
-    onShiftArrowUp: extendSelectionUp,
-    onShiftArrowDown: extendSelectionDown,
-    onCmdA: selectAllInColumn,
-    onCmdArrowUp: handleCmdArrowUp,
-    onCmdArrowDown: handleCmdArrowDown,
-    onCmdSlash: () => setShortcutSheetOpen(true),
-    onBackslashMenu: handleBackslashMenuOpen,
-    enabled: true,
+  useActions({
+    // Global actions
+    mainView: () => setCurrentView('main_db'),
+    upcomingView: () => setCurrentView('upcoming'),
+    archiveView: handleOpenArchive,
+    settings: handleOpenSettings,
+    undo: handleUndo,
+    redo: handleRedo,
+    commandPalette: handleOpenCommandPalette,
+    searchOpen: handleOpenSearch,
+    searchClose: handleSearchClose,
+    completedToggle: handleToggleShowCompleted,
+    saveView: handleSaveView,
+    savedView2: () => handleLoadSavedView(0),
+    savedView3: () => handleLoadSavedView(1),
+    savedView4: () => handleLoadSavedView(2),
+    savedView5: () => handleLoadSavedView(3),
+    savedView6: () => handleLoadSavedView(4),
+    savedView7: () => handleLoadSavedView(5),
+    savedView8: () => handleLoadSavedView(6),
+    savedView9: () => handleLoadSavedView(7),
+    scrollLeft,
+    scrollRight,
+    scrollHome: handleScrollHome,
+    scrollEnd: handleScrollEnd,
+    colorNone: () => setColorMode('none'),
+    colorCategory: () => setColorMode('category'),
+    colorPriority: () => setColorMode('priority'),
+    cmdSlash: () => setShortcutSheetOpen(true),
+    // Create actions (both shortcuts trigger initiateCreation)
+    newTask: initiateCreation,
+    newDirectory: initiateCreation,
+    // Creation context
+    creationTypeTask: handleCreationTypeTask,
+    creationTypeDirectory: handleCreationTypeDirectory,
+    creationEscape: handleCancelCreation,
+    'creation.invalidKey': (event?: KeyboardEvent) => handleCreationInvalidKey(event?.key ?? ''),
+    // Navigation context
+    arrowUp: moveFocusUp,
+    arrowDown: moveFocusDown,
+    arrowLeft: collapseColumn,
+    arrowRight: handleEnterOrArrowRight,
+    enter: handleEnterOrArrowRight,
+    escape: handleEscape,
+    space: handleSpace,
+    shiftArrowUp: extendSelectionUp,
+    shiftArrowDown: extendSelectionDown,
+    cmdA: selectAllInColumn,
+    cmdArrowUp: handleCmdArrowUp,
+    cmdArrowDown: handleCmdArrowDown,
+    // Edit / clipboard (navigation context)
+    optionE: startQuickEdit,
+    cmdShiftE: startFullEdit,
+    cmdDelete: initiateDelete,
+    cmdC: copyShallow,
+    cmdShiftC: copyRecursive,
+    cmdV: paste,
+    cmdShiftV: pasteWithMetadata,
+    cmdX: cut,
+    backslashMenu: handleBackslashMenuOpen,
+    // Editing context
+    exitEditing: handleExitEditing,
+    cmdShiftF: handleAddAttachment,
+    cmdShiftO: handleOpenAllAttachments,
   })
 
   useEffect(() => {

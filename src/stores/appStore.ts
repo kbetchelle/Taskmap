@@ -67,6 +67,8 @@ interface AppStoreState {
   backslashMenuOpen: boolean
   backslashMenuPosition: { top: number; left: number } | null
   recentActions: { commandId: string; timestamp: number }[]
+  grabModeItemId: string | null
+  grabModeOriginalPosition: { parentId: string; position: number } | null
 
   setCurrentView: (view: CurrentView) => void
   setCommandPaletteCommands: (commands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>) => void
@@ -113,6 +115,7 @@ interface AppStoreState {
   setUndoCurrentIndex: (index: number) => void
   prependUndoHistory: (items: ActionHistoryItem[]) => void
   pushRecentAction: (commandId: string) => void
+  setGrabModeItem: (id: string | null, parentId?: string, position?: number) => void
 }
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
@@ -143,6 +146,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   backslashMenuOpen: false,
   backslashMenuPosition: null,
   recentActions: loadRecentActions(),
+  grabModeItemId: null,
+  grabModeOriginalPosition: null,
 
   setCurrentView: (view) => set({ currentView: view }),
   setCommandPaletteCommands: (commands) => set({ commandPaletteCommands: commands }),
@@ -248,6 +253,13 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       const index =
         s.undoCurrentIndex < 0 ? items.length - 1 : s.undoCurrentIndex + items.length
       return { undoStack: stack, undoCurrentIndex: index }
+    }),
+  setGrabModeItem: (id, parentId, position) =>
+    set({
+      grabModeItemId: id,
+      grabModeOriginalPosition: id && parentId != null && position != null
+        ? { parentId, position }
+        : null,
     }),
   pushRecentAction: (commandId) =>
     set((s) => {

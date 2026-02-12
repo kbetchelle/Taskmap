@@ -4,7 +4,7 @@ import { useAppStore } from '../../stores/appStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useFeedbackStore } from '../../stores/feedbackStore'
 import { useAppContext } from '../../contexts/AppContext'
-import { useKeyboard } from '../../hooks/useKeyboard'
+import { useActions } from '../../lib/actionRegistry'
 import { Button } from '../ui/Button'
 import { SettingsSection } from './SettingsSection'
 import { SettingField } from './SettingField'
@@ -105,12 +105,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     onClose()
   }, [hasChanges, onClose])
 
-  useKeyboard({
-    onSettingsSave: () => {
+  useActions({
+    settingsSave: () => {
       if (hasChanges) handleSave()
     },
-    onSettingsClose: handleClose,
-    enabled: true,
+    settingsClose: handleClose,
   })
 
   useEffect(() => {

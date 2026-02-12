@@ -2,8 +2,8 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../../stores/appStore'
 import { useShortcutStore } from '../../lib/shortcutManager'
 import { formatShortcutForDisplay } from '../../lib/platform'
-import { KEYBOARD_SHORTCUTS } from '../../lib/keyboardShortcuts'
-import type { KeyboardShortcut, ShortcutCategory } from '../../types/keyboard'
+import { SHORTCUT_BINDINGS, type ShortcutBinding } from '../../lib/shortcutRegistry'
+import type { ShortcutCategory } from '../../types/keyboard'
 import { Button } from '../ui/Button'
 
 const CATEGORY_ORDER: ShortcutCategory[] = [
@@ -14,30 +14,31 @@ const CATEGORY_ORDER: ShortcutCategory[] = [
   'Other',
 ]
 
-function formatShortcutDisplay(s: KeyboardShortcut): string {
-  if (s.action) {
-    const shortcut = useShortcutStore.getState().getShortcut(s.action)
-    return formatShortcutForDisplay(shortcut || '')
-  }
-  return s.modifiers ? `${s.modifiers}+${s.key}` : s.key
+function formatBindingDisplay(b: ShortcutBinding): string {
+  const remapped = useShortcutStore.getState().getShortcut(b.action)
+  return formatShortcutForDisplay(remapped || b.keys)
 }
 
 function ShortcutsPage() {
   useShortcutStore((s) => s.mappings) // subscribe so custom shortcuts re-render
+  const displayBindings = useMemo(
+    () => SHORTCUT_BINDINGS.filter(b => !b.isChord),
+    []
+  )
   const byCategory = useMemo(() => {
-    const map = new Map<string, KeyboardShortcut[]>()
-    for (const s of KEYBOARD_SHORTCUTS) {
-      const list = map.get(s.category) ?? []
-      list.push(s)
-      map.set(s.category, list)
+    const map = new Map<string, ShortcutBinding[]>()
+    for (const b of displayBindings) {
+      const list = map.get(b.category) ?? []
+      list.push(b)
+      map.set(b.category, list)
     }
     return map
-  }, [])
+  }, [displayBindings])
 
   return (
     <div className="overflow-y-auto p-4 space-y-4 flex-1 min-h-0">
       {CATEGORY_ORDER.filter((cat) => byCategory.has(cat)).map((category) => {
-        const shortcuts = byCategory.get(category)!
+        const bindings = byCategory.get(category)!
         return (
           <section key={category}>
             <h3 className="text-flow-meta font-flow-semibold text-flow-textSecondary mb-2">
@@ -45,12 +46,12 @@ function ShortcutsPage() {
             </h3>
             <table className="w-full text-left text-flow-task text-flow-textPrimary">
               <tbody>
-                {shortcuts.map((s, i) => (
-                  <tr key={`${s.key}-${s.modifiers ?? ''}-${i}`}>
+                {bindings.map((b) => (
+                  <tr key={b.id}>
                     <td className="py-1 pr-4 font-mono text-flow-meta text-flow-textSecondary whitespace-nowrap">
-                      {formatShortcutDisplay(s)}
+                      {formatBindingDisplay(b)}
                     </td>
-                    <td className="py-1">{s.description}</td>
+                    <td className="py-1">{b.label}</td>
                   </tr>
                 ))}
               </tbody>

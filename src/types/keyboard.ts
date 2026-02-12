@@ -10,6 +10,7 @@ export type KeyboardContext =
   | 'shortcut-sheet'
   | 'sidebar'
   | 'command_menu'
+  | 'grab'
 
 export interface FocusHistoryItem {
   columnIndex: number

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, forwardRef } from 'react'
+import { useAppStore } from '../../stores/appStore'
 
 interface ListItemProps {
   id: string
@@ -46,6 +47,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
   const internalRef = useRef<HTMLDivElement>(null)
   const ref = mergeRefs(internalRef, forwardedRef)
   const [isDragging, setIsDragging] = useState(false)
+  const isGrabbed = useAppStore((s) => s.grabModeItemId === id)
 
   useEffect(() => {
     if (isFocused && internalRef.current) {
@@ -94,6 +96,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
         ${isFocused ? 'item-focused' : ''}
         ${isCut ? 'opacity-50' : ''}
         ${isDragging ? 'dragging' : ''}
+        ${isGrabbed ? 'ring-2 ring-flow-focus shadow-md animate-pulse' : ''}
         ${extraClass}
       `}
       onClick={(e) => {

@@ -1,6 +1,6 @@
 export { useAuth, useAuthSyncStores } from './useAuth'
 export { useRealtimeSubscriptions } from './useRealtime'
-export { useKeyboard } from './useKeyboard'
+export { useShortcutDispatcher } from './useShortcutDispatcher'
 export { useDatabase } from './useDatabase'
 export { useUndo } from './useUndo'
 export { useClipboard } from './useClipboard'

@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useRef } from 'react'
+import { useShortcutDispatcher } from '../../hooks/useShortcutDispatcher'
 import { useAppStore } from '../../stores/appStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useConflictStore } from '../../stores/conflictStore'
@@ -29,6 +30,7 @@ interface AppContainerProps {
 }
 
 export function AppContainer({ children }: AppContainerProps) {
+  useShortcutDispatcher()
   useMobileMode()
   const { breakpoint, isMobile } = useViewport()
   const currentView = useAppStore((s) => s.currentView)
