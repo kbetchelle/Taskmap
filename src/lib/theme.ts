@@ -55,3 +55,16 @@ export const typography = {
 
 export const COLUMN_WIDTH_PX = 280
 export const EXPANDED_PANEL_WIDTH_PX = 320
+
+// Responsive layout breakpoints (px) — single source of truth for viewport hook and store
+export const BREAKPOINT_MOBILE = 768
+export const BREAKPOINT_DESKTOP = 1024
+
+// Layout dimensions
+export const SIDEBAR_WIDTH_DEFAULT = 260
+export const SIDEBAR_COLLAPSED_WIDTH = 40
+export const TOPBAR_HEIGHT_PX = 48
+export const SIDEBAR_WIDTH_MIN = 200
+export const SIDEBAR_WIDTH_MAX = 400
+
+export type Breakpoint = 'mobile' | 'tablet' | 'desktop'

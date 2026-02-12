@@ -318,6 +318,24 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     const newItems = getItemsForColumn(newCol)
     setFocusedItem(newItems.length > 0 ? newItems[0].id : getEmptySlotId(newCol))
     setTimeout(() => scrollToColumn(newCol), 50)
+
+    // When navigating to the first cell of the new column via keyboard, show T/D hint and wait for T or D.
+    const tid = useUIStore.getState().creationTimeoutId
+    if (tid != null) clearTimeout(tid)
+    setCreationTimeoutId(null)
+    const newItemId = crypto.randomUUID()
+    setCreationState({
+      mode: 'type-select',
+      itemId: newItemId,
+      columnIndex: newCol,
+      itemIndex: 0,
+    })
+    pushKeyboardContext('creation')
+    const timeoutId = setTimeout(() => {
+      cancelCreation()
+      popKeyboardContext()
+    }, CREATION_TIMEOUT_MS)
+    setCreationTimeoutId(timeoutId)
   }, [
     focusedColumnIndex,
     focusedItemId,
@@ -330,6 +348,10 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     setExpandedTaskId,
     pushKeyboardContext,
     scrollToColumn,
+    setCreationState,
+    setCreationTimeoutId,
+    cancelCreation,
+    popKeyboardContext,
   ])
 
   const handleEscape = useCallback(() => {

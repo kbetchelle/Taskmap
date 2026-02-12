@@ -217,3 +217,86 @@
   overflow-y: auto;
   padding: 0 20px 20px;
 }
+
+/* Content Editor — scoped styles for contentEditable */
+.content-editor {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.625;
+  color: #000000;
+  outline: none;
+  min-height: 120px;
+  word-break: break-word;
+  background-color: #FFFFFF;
+  border-radius: 6px;
+  padding: 8px;
+  border: 1px solid #E5E5E5;
+  cursor: text;
+  transition: border-color 150ms;
+}
+
+.content-editor:focus {
+  border-color: #007AFF;
+}
+
+.content-editor:empty::before {
+  content: 'Add a description...';
+  color: #AAAAAA; /* text-flow-textDisabled */
+  pointer-events: none;
+}
+
+.content-editor h1 {
+  font-size: 1.25rem; /* text-xl */
+  font-weight: 600;
+  margin: 0.5em 0;
+}
+
+.content-editor h2 {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 600;
+  margin: 0.5em 0;
+}
+
+.content-editor h3 {
+  font-size: 1rem; /* text-base */
+  font-weight: 600;
+  margin: 0.5em 0;
+}
+
+.content-editor p {
+  margin: 0.25em 0;
+}
+
+.content-editor ul,
+.content-editor ol {
+  padding-left: 1.5rem;
+  margin: 0.25em 0;
+}
+
+.content-editor ul {
+  list-style-type: disc;
+}
+
+.content-editor ol {
+  list-style-type: decimal;
+}
+
+.content-editor li {
+  margin: 0.25em 0;
+}
+
+.content-editor li + li {
+  margin-top: 0.25rem;
+}
+
+/* Backslash command menu entrance animation */
+@keyframes backslashMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

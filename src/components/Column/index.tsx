@@ -260,6 +260,7 @@ export function Column({
         !(creationState?.mode === 'directory-naming' && creationState?.columnIndex === columnIndex && creationState?.itemId) ? (
           isActive ? (
             <div
+              id={`item-${getEmptySlotId(columnIndex)}`}
               role="row"
               tabIndex={-1}
               data-item-id={getEmptySlotId(columnIndex)}

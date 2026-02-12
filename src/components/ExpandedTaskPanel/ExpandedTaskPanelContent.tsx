@@ -26,6 +26,7 @@ import { useAppContext } from '../../contexts/AppContext'
 import { useFeedbackStore } from '../../stores/feedbackStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { MAX_ATTACHMENT_FILE_SIZE } from '../../lib/constants'
+import { ContentEditor } from '../ContentEditor'
 
 interface MetadataFieldProps {
   label: string
@@ -252,6 +253,13 @@ export function ExpandedTaskPanelContent({
   const updateTask = useTaskStore((s) => s.updateTask)
   const settings = useSettingsStore((s) => s.settings)
 
+  const handleDescriptionSave = useCallback(
+    async (html: string) => {
+      await updateTask(task.id, { description: html || null })
+    },
+    [updateTask, task.id]
+  )
+
   useEffect(() => {
     let cancelled = false
     getDirectoryPath(task.directory_id).then(
@@ -437,16 +445,16 @@ export function ExpandedTaskPanelContent({
               </div>
             </div>
           )}
-          {task.description && (
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
-                Description
-              </h3>
-              <p className="text-sm leading-relaxed text-flow-textPrimary m-0 whitespace-pre-wrap">
-                {task.description}
-              </p>
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
+              Description
+            </h3>
+            <ContentEditor
+              initialContent={task.description}
+              taskId={task.id}
+              onSave={handleDescriptionSave}
+            />
+          </div>
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
               Attachments
