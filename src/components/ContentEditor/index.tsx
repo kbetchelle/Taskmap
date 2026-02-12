@@ -178,6 +178,10 @@ export function ContentEditor({ initialContent, onSave, taskId }: ContentEditorP
     e.preventDefault()
     const text = e.clipboardData.getData('text/plain')
     document.execCommand('insertText', false, text)
+    // Explicitly sync state — execCommand from within paste handler
+    // doesn't reliably fire input events in all browsers (e.g. Safari)
+    const editor = editorRef.current
+    if (editor) setContent(editor.innerHTML)
   }, [])
 
   // Input handler
