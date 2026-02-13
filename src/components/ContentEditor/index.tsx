@@ -3,6 +3,7 @@ import { EditorToolbar } from './EditorToolbar'
 import { useMarkdownShortcuts } from './useMarkdownShortcuts'
 import { useAutoSave } from '../../hooks/useAutoSave'
 import { useBackslashMenu } from '../../hooks/useBackslashMenu'
+import { useReadOnly } from '../../hooks/useReadOnly'
 import { EditorMenu as BackslashMenu } from '../BackslashMenu/EditorMenu'
 import { sanitizeHTML, escapeHTML } from '../../lib/sanitizeHTML'
 
@@ -31,6 +32,7 @@ function prepareInitialHTML(content: string | null): string {
 type SaveStatus = 'idle' | 'saving' | 'saved'
 
 export function ContentEditor({ initialContent, onSave, taskId }: ContentEditorProps) {
+  const { isReadOnly } = useReadOnly()
   const editorRef = useRef<HTMLDivElement | null>(null)
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set())
   const [content, setContent] = useState('')
@@ -209,14 +211,14 @@ export function ContentEditor({ initialContent, onSave, taskId }: ContentEditorP
       <EditorToolbar onCommand={handleCommand} activeFormats={activeFormats} />
       <div
         ref={editorRef}
-        className="content-editor"
-        contentEditable
+        className={`content-editor ${isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+        contentEditable={!isReadOnly}
         role="textbox"
         aria-multiline
         aria-label="Task description"
-        onInput={handleInput}
-        onPaste={handlePaste}
-        onKeyDown={handleKeyDown}
+        onInput={isReadOnly ? undefined : handleInput}
+        onPaste={isReadOnly ? undefined : handlePaste}
+        onKeyDown={isReadOnly ? undefined : handleKeyDown}
         suppressContentEditableWarning
       />
       {saveStatus !== 'idle' && (

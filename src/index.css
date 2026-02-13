@@ -35,6 +35,8 @@
     color: #000000;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    /* Prevent iOS rubber-band scroll on the main document */
+    overscroll-behavior: none;
   }
 }
 
@@ -287,6 +289,13 @@
 
 .content-editor li + li {
   margin-top: 0.25rem;
+}
+
+/* Read-only mode: disable write actions when offline */
+.read-only-disabled [data-write-action] {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 /* Backslash command menu entrance animation */

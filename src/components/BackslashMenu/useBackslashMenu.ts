@@ -3,6 +3,7 @@ import { useAppStore } from '../../stores/appStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useUIStore } from '../../stores/uiStore'
+import { useNetworkStore } from '../../stores/networkStore'
 import {
   getApplicableCommands,
   fuzzyMatch,
@@ -87,12 +88,14 @@ export function useBackslashMenu(): UseBackslashMenuReturn {
     }
   }, [focusedItemId, selectedItems, navigationPath])
 
+  const isReadOnly = useNetworkStore((s) => !s.isOnline)
+
   // Get applicable commands and apply fuzzy filter
   const filteredCommands = useMemo(() => {
-    const applicable = getApplicableCommands(commandContext)
+    const applicable = getApplicableCommands(commandContext, isReadOnly)
     if (!query) return applicable
     return applicable.filter((cmd) => fuzzyMatch(query, cmd.label))
-  }, [commandContext, query])
+  }, [commandContext, query, isReadOnly])
 
   // Calculate position from focused item DOM element
   const calculatePosition = useCallback((): { top: number; left: number } | null => {

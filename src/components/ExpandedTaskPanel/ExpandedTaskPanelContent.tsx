@@ -32,6 +32,7 @@ import { StatusIcon } from '../StatusIcon'
 import { LinkedReferences } from '../LinkedReferences'
 import { StatusDropdown } from '../StatusDropdown'
 import { getNextStatus, getStatusLabel, getAutoArchiveCountdown, deriveCompletionFields } from '../../lib/statusUtils'
+import { useReadOnly } from '../../hooks/useReadOnly'
 
 interface MetadataFieldProps {
   label: string
@@ -373,6 +374,7 @@ export function ExpandedTaskPanelContent({
   onTaskUpdated,
   mobile = false,
 }: ExpandedTaskPanelContentProps) {
+  const { isReadOnly } = useReadOnly()
   const { userId } = useAppContext()
   const [locationPath, setLocationPath] = useState<string[]>([])
   const [locationLoading, setLocationLoading] = useState(true)
@@ -607,8 +609,10 @@ export function ExpandedTaskPanelContent({
         <div className="flex gap-2 pt-4 border-t border-flow-columnBorder">
           <button
             type="button"
-            onClick={onEdit}
-            className="flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-white text-flow-textPrimary hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2"
+            onClick={isReadOnly ? undefined : onEdit}
+            disabled={isReadOnly}
+            className={`flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-white text-flow-textPrimary transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2 ${isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-50'}`}
+            data-write-action=""
           >
             {mobile ? 'Edit' : 'Edit (Cmd+Shift+E)'}
           </button>

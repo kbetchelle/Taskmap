@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { isTouch } from '../lib/mobileDetection'
 import { useUIStore } from '../stores/uiStore'
+import { haptic } from '../lib/haptics'
 
 export interface TouchGestureCallbacks {
   onSwipeRight?: () => void
@@ -38,6 +39,7 @@ export function useTouchGestures(
         longPressTimerRef.current = null
         const itemId = el.getAttribute('data-task-id') ?? el.getAttribute('data-item-id')
         if (itemId) {
+          haptic.medium()
           // Initiate new drag system on long-press
           const elementRect = el.getBoundingClientRect()
           const uiStore = useUIStore.getState()
@@ -104,6 +106,7 @@ export function useTouchGestures(
       const uiStore = useUIStore.getState()
       if (uiStore.dragState === 'dragging') {
         if (uiStore.dropTarget && !uiStore.dropTarget.isInvalid) {
+          haptic.double()
           uiStore.completeDrop()
         } else {
           uiStore.cancelDrag()

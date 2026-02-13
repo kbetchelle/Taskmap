@@ -688,7 +688,7 @@ export function MobileColumnsView({
       : directories.find((d) => d.id === currentDirectoryId)?.name ?? ''
 
   return (
-    <div className="mobile-columns-view flex-1 min-h-0 flex flex-col bg-flow-background">
+    <div className="mobile-columns-view flex-1 min-h-0 flex flex-col bg-flow-background" style={{ paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}>
       <div className="mobile-breadcrumb flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-flow-columnBorder bg-flow-background">
         <Button
           variant="secondary"

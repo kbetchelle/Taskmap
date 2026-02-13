@@ -247,11 +247,20 @@ export const allCommands: CommandDescriptor[] = [
   ...viewCommands,
 ]
 
+// Command IDs that are safe in read-only (offline) mode
+const READ_ONLY_COMMAND_IDS = new Set([
+  'view-list',
+  'view-calendar',
+  'view-kanban',
+  'view-dependencies',
+])
+
 /**
  * Return the commands applicable to the given context.
  * Filters by scope (single vs multi vs empty) and by the isApplicable predicate.
+ * When readOnly is true, only navigation/view commands are returned.
  */
-export function getApplicableCommands(ctx: CommandContext): CommandDescriptor[] {
+export function getApplicableCommands(ctx: CommandContext, readOnly = false): CommandDescriptor[] {
   const scope: CommandScope =
     ctx.selectedItems.length > 1
       ? 'multi'
@@ -259,9 +268,12 @@ export function getApplicableCommands(ctx: CommandContext): CommandDescriptor[] 
         ? 'single'
         : 'empty'
 
-  return allCommands.filter(
-    (cmd) => cmd.scopes.includes(scope) && cmd.isApplicable(ctx),
-  )
+  return allCommands.filter((cmd) => {
+    if (!cmd.scopes.includes(scope)) return false
+    if (!cmd.isApplicable(ctx)) return false
+    if (readOnly && !READ_ONLY_COMMAND_IDS.has(cmd.id)) return false
+    return true
+  })
 }
 
 // ── Backward-compatible types for ContentEditor's slash menu ─────────────

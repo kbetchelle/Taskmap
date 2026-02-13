@@ -1,10 +1,40 @@
 // Action registration and execution for keyboard shortcuts
 
 import { useEffect, useRef } from 'react'
+import { useNetworkStore } from '../stores/networkStore'
+import { useFeedbackStore } from '../stores/feedbackStore'
 
 export type ActionHandler = (event?: KeyboardEvent) => void
 
 const handlers = new Map<string, ActionHandler>()
+
+// Action IDs that are read-only safe (navigation, viewing, search)
+const READ_ONLY_SAFE_ACTIONS = new Set([
+  'navigate-back',
+  'navigate-forward',
+  'navigate-up',
+  'navigate-root',
+  'expand-item',
+  'collapse-item',
+  'focus-next',
+  'focus-prev',
+  'focus-next-column',
+  'focus-prev-column',
+  'toggle-sidebar',
+  'open-search',
+  'open-command-palette',
+  'open-shortcuts',
+  'open-help',
+  'toggle-expanded',
+  'select-item',
+  'select-all',
+  'clear-selection',
+  'view-list',
+  'view-calendar',
+  'view-kanban',
+  'scroll-up',
+  'scroll-down',
+])
 
 export function registerAction(id: string, handler: ActionHandler): void {
   handlers.set(id, handler)
@@ -15,6 +45,13 @@ export function unregisterAction(id: string): void {
 }
 
 export function executeAction(id: string, event?: KeyboardEvent): boolean {
+  // Read-only guard: block write actions when offline
+  const isOnline = useNetworkStore.getState().isOnline
+  if (!isOnline && !READ_ONLY_SAFE_ACTIONS.has(id)) {
+    useFeedbackStore.getState().showInfo('This action is not available offline')
+    return false
+  }
+
   const handler = handlers.get(id)
   if (handler) {
     handler(event)

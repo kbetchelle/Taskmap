@@ -14,6 +14,7 @@ import {
 import { useTaskStore } from '../../stores/taskStore'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useAppStore } from '../../stores/appStore'
+import { useNetworkStore } from '../../stores/networkStore'
 import { fuzzyMatch } from '../../lib/fuzzyMatch'
 import { allCommands } from '../../lib/commandRegistry'
 import { getPathToDirectory } from '../../lib/treeUtils'
@@ -142,6 +143,7 @@ export function useQuickSearch(query: string): SearchResults {
   const commandPaletteCommands = useAppStore((s) => s.commandPaletteCommands)
   const savedViews = useAppStore((s) => s.savedViews)
   const recentActions = useAppStore((s) => s.recentActions)
+  const isOnline = useNetworkStore((s) => s.isOnline)
 
   // Build search indices — only recomputed when underlying data changes
   const breadcrumbMap = useMemo(
@@ -217,8 +219,17 @@ export function useQuickSearch(query: string): SearchResults {
       }
     }
 
+    // Filter out write actions when offline
+    if (!isOnline) {
+      const readOnlyCategories = new Set(['View'])
+      const readOnlySafeIds = new Set(['view-list', 'view-calendar', 'view-kanban', 'view-dependencies'])
+      return result.filter(
+        (cmd) => readOnlyCategories.has(cmd.category) || readOnlySafeIds.has(cmd.id)
+      )
+    }
+
     return result
-  }, [commandPaletteCommands])
+  }, [commandPaletteCommands, isOnline])
 
   // Saved views as navigation targets
   const savedViewTargets = useMemo(

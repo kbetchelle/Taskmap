@@ -9,6 +9,8 @@
 import { useCallback, useRef, useEffect } from 'react'
 import { useUIStore } from '../../stores/uiStore'
 import { useAppStore } from '../../stores/appStore'
+import { useNetworkStore } from '../../stores/networkStore'
+import { haptic } from '../../lib/haptics'
 
 const DRAG_THRESHOLD = 5
 
@@ -48,6 +50,7 @@ export function useDrag({ itemId, disabled = false }: UseDragOptions): UseDragRe
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (disabled) return
+      if (!useNetworkStore.getState().isOnline) return // Disable drag when offline
       if (e.button !== 0) return // Only left mouse button
 
       e.preventDefault()
@@ -69,6 +72,7 @@ export function useDrag({ itemId, disabled = false }: UseDragOptions): UseDragRe
       const itemEl = document.querySelector(`[data-item-id="${itemId}"]`)
       const elementRect = itemEl?.getBoundingClientRect() ?? new DOMRect(e.clientX, e.clientY, 0, 0)
 
+      haptic.medium()
       startGrab(itemIds, {
         x: e.clientX,
         y: e.clientY,
@@ -106,6 +110,7 @@ export function useDrag({ itemId, disabled = false }: UseDragOptions): UseDragRe
 
       const currentState = useUIStore.getState()
       if (currentState.dragState === 'dragging' && currentState.dropTarget && !currentState.dropTarget.isInvalid) {
+        haptic.double()
         completeDrop()
       } else {
         cancelDrag()

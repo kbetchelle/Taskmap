@@ -6,6 +6,7 @@ import { useTaskStore } from '../stores/taskStore'
 import { useLinkStore } from '../stores/linkStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAppStore } from '../stores/appStore'
+import { useNetworkStore } from '../stores/networkStore'
 import { loadRecentActionHistory } from '../api/actionHistory'
 import type { ActionHistoryItem } from '../types/state'
 
@@ -41,10 +42,19 @@ export function useAuthSyncStores() {
 
   useEffect(() => {
     if (!user?.id) return
-    fetchDirectories(user.id)
-    fetchActiveItems(user.id)
-    fetchLinksForUser(user.id)
-    fetchSettings(user.id)
+
+    // Fetch all data and update lastSyncedAt on success
+    Promise.all([
+      fetchDirectories(user.id),
+      fetchActiveItems(user.id),
+      fetchLinksForUser(user.id),
+      fetchSettings(user.id),
+    ]).then(() => {
+      useNetworkStore.getState().setLastSyncedAt(Date.now())
+    }).catch(() => {
+      // Individual fetches handle their own errors
+    })
+
     loadRecentActionHistory(user.id, 20).then((rows) => {
       const currentStack = useAppStore.getState().undoStack
       if (currentStack.length > 0) return

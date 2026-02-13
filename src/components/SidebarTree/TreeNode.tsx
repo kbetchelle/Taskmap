@@ -73,7 +73,7 @@ export function TreeNode({
       role="treeitem"
       tabIndex={isFocused ? 0 : -1}
       data-node-id={node.id}
-      className={`relative flex items-center gap-1 min-h-[28px] px-2 py-1 cursor-pointer rounded transition-colors outline-none ${bgClass}`}
+      className={`relative flex items-center gap-1 min-h-[44px] md:min-h-[28px] px-2 py-1 cursor-pointer rounded transition-colors outline-none ${bgClass}`}
       style={{ paddingLeft: 8 + depth * 16 }}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('[data-chevron]')) return

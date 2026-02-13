@@ -1,5 +1,6 @@
 import type { TaskStatus } from '../../types/database'
 import { getStatusColor } from '../../lib/statusUtils'
+import { useReadOnly } from '../../hooks/useReadOnly'
 
 interface StatusIconProps {
   status: TaskStatus
@@ -16,23 +17,29 @@ export function StatusIcon({
   onContextMenu,
   className = '',
 }: StatusIconProps) {
+  const { isReadOnly } = useReadOnly()
   const color = getStatusColor(status)
   const strokeWidth = 2
   const r = strokeWidth / 2
   const inner = size - strokeWidth
 
+  // Wrap in a touch-target container for mobile (44px min)
   return (
+    <span
+      className={`inline-flex items-center justify-center flex-shrink-0 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 ${isReadOnly ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${className}`}
+      onClick={isReadOnly ? undefined : onClick}
+      onContextMenu={isReadOnly ? undefined : onContextMenu}
+      role="button"
+      aria-label={`Status: ${status.replace(/_/g, ' ')}`}
+      data-write-action={onClick ? '' : undefined}
+    >
     <svg
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-      className={`flex-shrink-0 cursor-pointer ${className}`}
-      role="button"
-      aria-label={`Status: ${status.replace(/_/g, ' ')}`}
+      className="flex-shrink-0"
     >
       {status === 'not_started' && (
         <rect
@@ -111,5 +118,6 @@ export function StatusIcon({
         </>
       )}
     </svg>
+    </span>
   )
 }

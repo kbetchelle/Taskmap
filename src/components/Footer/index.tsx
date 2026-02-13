@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useAppStore } from '../../stores/appStore'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useUIStore } from '../../stores/uiStore'
+import { useNetworkStore } from '../../stores/networkStore'
 
 function mainDbActiveCount(
   directories: { start_date: string | null }[],
@@ -19,9 +20,24 @@ function mainDbActiveCount(
   return dirCount + taskCount
 }
 
+function formatRelativeTime(ts: number): string {
+  if (!ts) return 'never'
+  const diff = Math.max(0, Math.floor((Date.now() - ts) / 1000))
+  if (diff < 10) return 'just now'
+  if (diff < 60) return `${diff}s ago`
+  const mins = Math.floor(diff / 60)
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
 export function Footer() {
   const isMobile = useUIStore((s) => s.mobileMode)
   const navigationPath = useAppStore((s) => s.navigationPath)
+  const isOnline = useNetworkStore((s) => s.isOnline)
+  const lastSyncedAt = useNetworkStore((s) => s.lastSyncedAt)
   const currentView = useAppStore((s) => s.currentView)
   const colorMode = useAppStore((s) => s.colorMode)
   const activeFilters = useAppStore((s) => s.activeFilters)
@@ -76,6 +92,15 @@ export function Footer() {
     return tasks.filter((t) => t.status === 'completed' && t.archived_at == null).length
   }, [tasks, activeFilters.showCompleted])
 
+  // Re-render periodically to update "Last synced: X ago" when offline
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (!isOnline && lastSyncedAt) {
+      const interval = setInterval(() => setTick((t) => t + 1), 30_000)
+      return () => clearInterval(interval)
+    }
+  }, [isOnline, lastSyncedAt])
+
   return (
     <footer
       className={`flex-shrink-0 h-8 border-t border-flow-columnBorder px-4 flex items-center justify-between gap-4 text-flow-footer text-flow-textSecondary ${
@@ -125,6 +150,12 @@ export function Footer() {
           <>
             <span className="text-flow-textDisabled">|</span>
             <span>({hiddenCompletedCount} completed hidden)</span>
+          </>
+        )}
+        {!isOnline && lastSyncedAt > 0 && (
+          <>
+            <span className="text-flow-textDisabled">|</span>
+            <span className="text-amber-600">Last synced: {formatRelativeTime(lastSyncedAt)}</span>
           </>
         )}
         <span className="text-flow-textDisabled">|</span>
