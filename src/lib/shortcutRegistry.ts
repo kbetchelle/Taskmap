@@ -31,6 +31,11 @@ export const SHORTCUT_BINDINGS: ShortcutBinding[] = [
   { id: 'view.upcoming', keys: 'mod+shift+l', layer: 'global', blockedContexts: GLOBAL_BLOCKED, action: 'upcomingView', label: 'Upcoming view', category: 'View' },
   { id: 'view.archive', keys: 'mod+shift+a', layer: 'global', blockedContexts: GLOBAL_BLOCKED, action: 'archiveView', label: 'View archived tasks', category: 'View' },
 
+  // Directory view type switching (List / Calendar / Kanban)
+  { id: 'view.list', keys: 'mod+shift+1', layer: 'global', blockedContexts: GLOBAL_BLOCKED, action: 'viewList', label: 'Switch to List view', category: 'View' },
+  { id: 'view.calendar', keys: 'mod+shift+2', layer: 'global', blockedContexts: GLOBAL_BLOCKED, action: 'viewCalendar', label: 'Switch to Calendar view', category: 'View' },
+  { id: 'view.kanban', keys: 'mod+shift+3', layer: 'global', blockedContexts: GLOBAL_BLOCKED, action: 'viewKanban', label: 'Switch to Kanban view', category: 'View' },
+
   // Command palette / search
   { id: 'command.palette', keys: 'mod+k', altKeys: 'ctrl+p', layer: 'global', blockedContexts: GLOBAL_BLOCKED, action: 'commandPalette', label: 'Quick actions (command palette)', category: 'View' },
   { id: 'search.open', keys: 'mod+shift+s', layer: 'global', blockedContexts: GLOBAL_BLOCKED, action: 'searchOpen', label: 'Open search overlay', category: 'View' },
@@ -180,7 +185,8 @@ export function getBindingByAction(action: string): ShortcutBinding | undefined 
 
 // Actions that existed in the original SHORTCUT_DEFINITIONS and are remappable
 export const REMAPPABLE_ACTIONS = new Set([
-  'mainView', 'upcomingView', 'archiveView', 'commandPalette', 'searchOpen',
+  'mainView', 'upcomingView', 'archiveView', 'viewList', 'viewCalendar', 'viewKanban',
+  'commandPalette', 'searchOpen',
   'completedToggle', 'saveView', 'newTask', 'newDirectory', 'settings',
   'undo', 'redo', 'optionE', 'cmdShiftE', 'cmdDelete', 'cmdC', 'cmdShiftC',
   'cmdV', 'cmdShiftV', 'cmdX', 'scrollLeft', 'scrollRight', 'scrollHome',

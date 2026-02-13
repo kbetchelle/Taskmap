@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { Task, TaskAttachment } from '../../types'
+import type { Task, TaskAttachment, TaskStatus, RecurringTask } from '../../types'
 import type { TaskPriority } from '../../types'
 import { getDirectoryPath } from '../../api/directories'
 import { listAttachments, addAttachments, removeAttachment, openAttachment } from '../../api/attachments'
+import { createNextRecurrence } from '../../api/tasks'
 import {
   isOverdue,
   formatDateNatural,
@@ -27,6 +28,10 @@ import { useFeedbackStore } from '../../stores/feedbackStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { MAX_ATTACHMENT_FILE_SIZE } from '../../lib/constants'
 import { ContentEditor } from '../ContentEditor'
+import { StatusIcon } from '../StatusIcon'
+import { LinkedReferences } from '../LinkedReferences'
+import { StatusDropdown } from '../StatusDropdown'
+import { getNextStatus, getStatusLabel, getAutoArchiveCountdown, deriveCompletionFields } from '../../lib/statusUtils'
 
 interface MetadataFieldProps {
   label: string
@@ -72,6 +77,134 @@ function MetadataField({
         {value}
       </div>
     </div>
+  )
+}
+
+/** Status row with interactive StatusIcon and dropdown */
+function ExpandedStatusRow({
+  task,
+  updateTask,
+}: {
+  task: Task
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>
+}) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
+
+  /** After a status change to 'completed', create the next recurrence if applicable. */
+  const handleRecurrence = useCallback(async (completedTask: Task) => {
+    if (!completedTask.recurrence_pattern) return
+    try {
+      const nextTask = await createNextRecurrence(completedTask as RecurringTask)
+      if (nextTask) {
+        const currentTasks = useTaskStore.getState().tasks
+        useTaskStore.getState().setTasks([...currentTasks, nextTask])
+        useFeedbackStore.getState().showSuccess('Created next occurrence')
+      }
+    } catch {
+      useFeedbackStore.getState().showError('Failed to create next occurrence')
+    }
+  }, [])
+
+  const handleClick = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation()
+      const next = getNextStatus(task.status)
+      const derived = deriveCompletionFields(next, task.completed_at)
+      await updateTask(task.id, { status: next, ...derived })
+      if (next === 'completed') {
+        await handleRecurrence(task)
+      }
+    },
+    [task, updateTask, handleRecurrence]
+  )
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDropdownPos({ top: e.clientY, left: e.clientX })
+    setDropdownOpen(true)
+  }, [])
+
+  const handleSelect = useCallback(
+    async (status: TaskStatus) => {
+      const derived = deriveCompletionFields(status, task.completed_at)
+      await updateTask(task.id, { status, ...derived })
+      if (status === 'completed') {
+        await handleRecurrence(task)
+      }
+      setDropdownOpen(false)
+    },
+    [task, updateTask, handleRecurrence]
+  )
+
+  const archiveCountdown = task.status === 'completed' ? getAutoArchiveCountdown(task.completed_at) : null
+
+  return (
+    <>
+      <div className="flex items-center gap-2 self-start">
+        <StatusIcon
+          status={task.status}
+          size={18}
+          onClick={handleClick}
+          onContextMenu={handleContextMenu}
+        />
+        <span className="text-sm font-flow-medium text-flow-textPrimary">
+          {getStatusLabel(task.status)}
+        </span>
+        {archiveCountdown && (
+          <span className="text-flow-meta text-flow-textSecondary ml-1">{archiveCountdown}</span>
+        )}
+      </div>
+      {dropdownOpen && (
+        <StatusDropdown
+          currentStatus={task.status}
+          onSelect={handleSelect}
+          onClose={() => setDropdownOpen(false)}
+          anchorPosition={dropdownPos}
+        />
+      )}
+    </>
+  )
+}
+
+/** Priority row with click-to-cycle */
+function ExpandedPriorityRow({
+  task,
+  updateTask,
+  settings,
+}: {
+  task: Task
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>
+  settings: ReturnType<typeof useSettingsStore.getState>['settings']
+}) {
+  const cycle: (TaskPriority | null)[] = ['HIGH', 'MED', 'LOW', null]
+  const handleCycle = useCallback(async () => {
+    const currentIdx = cycle.indexOf(task.priority)
+    const next = cycle[(currentIdx + 1) % cycle.length]
+    await updateTask(task.id, { priority: next })
+  }, [task, updateTask])
+
+  if (!task.priority) {
+    return (
+      <button
+        onClick={handleCycle}
+        className="text-flow-meta text-flow-textSecondary hover:text-flow-textPrimary transition-colors text-left"
+      >
+        + Set priority
+      </button>
+    )
+  }
+
+  return (
+    <button onClick={handleCycle} className="w-full text-left">
+      <MetadataField
+        label="Priority"
+        value={formatPriority(task.priority as TaskPriority)}
+        icon={getPriorityIcon(task.priority as TaskPriority)}
+        color={getPriorityColor(task.priority as TaskPriority, settings)}
+      />
+    </button>
   )
 }
 
@@ -370,21 +503,10 @@ export function ExpandedTaskPanelContent({
           <h2 className="text-lg font-semibold text-flow-textPrimary m-0 leading-snug">
             {task.title}
           </h2>
-          {task.is_completed && (
-            <span className="inline-flex px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded self-start">
-              ✓ Completed
-            </span>
-          )}
+          <ExpandedStatusRow task={task} updateTask={updateTask} />
         </div>
         <div className="flex flex-col gap-5 flex-1">
-          {task.priority && (
-            <MetadataField
-              label="Priority"
-              value={formatPriority(task.priority as TaskPriority)}
-              icon={getPriorityIcon(task.priority as TaskPriority)}
-              color={getPriorityColor(task.priority as TaskPriority, settings)}
-            />
-          )}
+          <ExpandedPriorityRow task={task} updateTask={updateTask} settings={settings} />
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
               Dates
@@ -455,6 +577,7 @@ export function ExpandedTaskPanelContent({
               onSave={handleDescriptionSave}
             />
           </div>
+          <LinkedReferences taskId={task.id} />
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
               Attachments

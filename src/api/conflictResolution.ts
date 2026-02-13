@@ -23,6 +23,7 @@ const TASK_FIELDS_TO_CHECK = [
   'background_color',
   'is_completed',
   'completed_at',
+  'status',
   'position',
   'directory_id',
   'recurrence_pattern',
@@ -42,7 +43,7 @@ const DIRECTORY_FIELDS_TO_CHECK = [
   'depth_level',
 ] as const
 
-const TASK_CRITICAL_FIELDS = ['title', 'directory_id', 'is_completed']
+const TASK_CRITICAL_FIELDS = ['title', 'directory_id', 'is_completed', 'status']
 const DIRECTORY_CRITICAL_FIELDS = ['name', 'parent_id']
 
 export function findConflictingFields(
@@ -125,6 +126,7 @@ export async function saveTaskWithConflictCheck(
       | 'description'
       | 'is_completed'
       | 'completed_at'
+      | 'status'
       | 'position'
       | 'directory_id'
       | 'recurrence_pattern'

@@ -151,6 +151,7 @@ export function TaskCreationPanel({
       description: (metadata.description ?? '').trim() || null,
       is_completed: false,
       completed_at: null,
+      status: 'not_started' as const,
       archived_at: null,
       archive_reason: null,
       position,

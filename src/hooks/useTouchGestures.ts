@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { isTouch } from '../lib/mobileDetection'
+import { useUIStore } from '../stores/uiStore'
 
 export interface TouchGestureCallbacks {
   onSwipeRight?: () => void
@@ -16,6 +17,7 @@ export function useTouchGestures(
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
   const touchStartTime = useRef(0)
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
@@ -27,8 +29,31 @@ export function useTouchGestures(
       touchStartX.current = touch.clientX
       touchStartY.current = touch.clientY
       touchStartTime.current = Date.now()
+
+      // Start a long-press timer (500ms) to initiate drag
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current)
+      const startX = touch.clientX
+      const startY = touch.clientY
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTimerRef.current = null
+        const itemId = el.getAttribute('data-task-id') ?? el.getAttribute('data-item-id')
+        if (itemId) {
+          // Initiate new drag system on long-press
+          const elementRect = el.getBoundingClientRect()
+          const uiStore = useUIStore.getState()
+          uiStore.startGrab([itemId], {
+            x: startX,
+            y: startY,
+            elementRect,
+          })
+          uiStore.startDrag()
+          uiStore.updateGhostPosition({ x: startX, y: startY })
+        }
+        // Also call the legacy callback
+        onLongPress?.(startX, startY)
+      }, 500)
     },
-    [elementRef, enabled]
+    [elementRef, enabled, onLongPress]
   )
 
   const handleTouchMove = useCallback(
@@ -40,6 +65,21 @@ export function useTouchGestures(
       const touch = e.touches[0]
       const deltaX = Math.abs(touch.clientX - touchStartX.current)
       const deltaY = Math.abs(touch.clientY - touchStartY.current)
+
+      // Cancel long-press if finger moves too much
+      if ((deltaX > 10 || deltaY > 10) && longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
+        longPressTimerRef.current = null
+      }
+
+      // If a drag is in progress, update ghost position
+      const uiStore = useUIStore.getState()
+      if (uiStore.dragState === 'dragging') {
+        e.preventDefault()
+        uiStore.updateGhostPosition({ x: touch.clientX, y: touch.clientY })
+        return
+      }
+
       if (deltaX > deltaY) {
         e.preventDefault()
       }
@@ -50,12 +90,30 @@ export function useTouchGestures(
   const handleTouchEnd = useCallback(
     (e: TouchEvent) => {
       if (!enabled || !isTouch()) return
+
+      // Cancel any pending long-press timer
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
+        longPressTimerRef.current = null
+      }
+
       const el = elementRef.current
       if (!el || !el.hasAttribute('data-task-id')) return
+
+      // If a drag is in progress, complete or cancel it
+      const uiStore = useUIStore.getState()
+      if (uiStore.dragState === 'dragging') {
+        if (uiStore.dropTarget && !uiStore.dropTarget.isInvalid) {
+          uiStore.completeDrop()
+        } else {
+          uiStore.cancelDrag()
+        }
+        return
+      }
+
       if (e.changedTouches.length === 0) return
       const touch = e.changedTouches[0]
       const deltaX = touch.clientX - touchStartX.current
-      const deltaY = touch.clientY - touchStartY.current
       const deltaTime = Date.now() - touchStartTime.current
 
       if (Math.abs(deltaX) > 50 && deltaTime < 300) {
@@ -66,12 +124,8 @@ export function useTouchGestures(
         }
         return
       }
-
-      if (deltaTime > 500 && Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-        onLongPress?.(touch.clientX, touch.clientY)
-      }
     },
-    [elementRef, enabled, onSwipeRight, onSwipeLeft, onLongPress]
+    [elementRef, enabled, onSwipeRight, onSwipeLeft]
   )
 
   useEffect(() => {
@@ -87,6 +141,10 @@ export function useTouchGestures(
       el.removeEventListener('touchstart', handleTouchStart)
       el.removeEventListener('touchmove', handleTouchMove)
       el.removeEventListener('touchend', handleTouchEnd)
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
+        longPressTimerRef.current = null
+      }
     }
   }, [elementRef, enabled, handleTouchStart, handleTouchMove, handleTouchEnd])
 }

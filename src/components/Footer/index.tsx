@@ -6,7 +6,7 @@ import { useUIStore } from '../../stores/uiStore'
 
 function mainDbActiveCount(
   directories: { start_date: string | null }[],
-  tasks: { start_date: string | null; is_completed: boolean }[],
+  tasks: { start_date: string | null; status?: string }[],
   showCompleted: boolean
 ): number {
   const today = new Date().toISOString().slice(0, 10)
@@ -14,7 +14,7 @@ function mainDbActiveCount(
     i.start_date == null || i.start_date.slice(0, 10) <= today
   const dirCount = directories.filter(dateOk).length
   const taskCount = tasks.filter(
-    (t) => dateOk(t) && (showCompleted || !t.is_completed)
+    (t) => dateOk(t) && (showCompleted || t.status !== 'completed')
   ).length
   return dirCount + taskCount
 }
@@ -71,6 +71,11 @@ export function Footer() {
     [currentView, searchResultTaskIds, directories, tasks, activeFilters.showCompleted]
   )
 
+  const hiddenCompletedCount = useMemo(() => {
+    if (activeFilters.showCompleted) return 0
+    return tasks.filter((t) => t.status === 'completed' && t.archived_at == null).length
+  }, [tasks, activeFilters.showCompleted])
+
   return (
     <footer
       className={`flex-shrink-0 h-8 border-t border-flow-columnBorder px-4 flex items-center justify-between gap-4 text-flow-footer text-flow-textSecondary ${
@@ -114,6 +119,12 @@ export function Footer() {
           <>
             <span className="text-flow-textDisabled">|</span>
             <span>{itemCount} active</span>
+          </>
+        )}
+        {hiddenCompletedCount > 0 && (
+          <>
+            <span className="text-flow-textDisabled">|</span>
+            <span>({hiddenCompletedCount} completed hidden)</span>
           </>
         )}
         <span className="text-flow-textDisabled">|</span>

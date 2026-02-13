@@ -6,6 +6,7 @@ type ViewType = 'main_db' | 'upcoming'
 export interface SubscriptionCallbacks {
   onDirectoriesChange: () => void
   onTasksChange: () => void
+  onLinksChange?: () => void
 }
 
 /**
@@ -30,7 +31,20 @@ export class SubscriptionManager {
 
     if (!this.callbacks) return
 
-    const { onDirectoriesChange, onTasksChange } = this.callbacks
+    const { onDirectoriesChange, onTasksChange, onLinksChange } = this.callbacks
+
+    // Task links: subscribe to all changes for user's links
+    if (onLinksChange) {
+      const linksChannel = supabase
+        .channel('realtime-task-links')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'task_links' },
+          () => onLinksChange()
+        )
+        .subscribe()
+      this.channels.set('task-links', linksChannel)
+    }
 
     // Root: directories with parent_id = null
     const rootChannel = supabase

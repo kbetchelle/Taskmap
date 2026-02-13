@@ -2,7 +2,9 @@
 
 export type TaskPriority = 'LOW' | 'MED' | 'HIGH';
 
-export type ActionType = 'create' | 'update' | 'delete' | 'move' | 'complete';
+export type TaskStatus = 'not_started' | 'in_progress' | 'finishing_touches' | 'completed';
+
+export type ActionType = 'create' | 'update' | 'delete' | 'move' | 'complete' | 'link';
 export type EntityType = 'task' | 'directory';
 
 export interface RecurrencePattern {
@@ -51,6 +53,7 @@ export interface Task {
   description: string | null;
   is_completed: boolean;
   completed_at: string | null;
+  status: TaskStatus;
   archived_at: string | null;
   archive_reason: 'completed' | 'user_deleted' | 'auto_archived' | null;
   position: number;
@@ -139,4 +142,5 @@ export interface ActiveItemRow {
   priority: TaskPriority | null;
   due_date: string | null;
   is_completed: boolean | null;
+  status: TaskStatus | null;
 }

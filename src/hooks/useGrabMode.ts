@@ -1,10 +1,16 @@
 // Grab mode hook — keyboard-driven drag-and-drop for items
+// Integrated with the new drag visual system (Build 3C):
+// - Sets dragState/draggedItemIds in uiStore for shared visual treatment
+// - Updates dropTarget for DropIndicator feedback
+// - Uses the same ring/shadow styling as mouse drag
 
 import { useCallback } from 'react'
 import { useAppStore } from '../stores/appStore'
+import { useUIStore } from '../stores/uiStore'
 import { useTaskStore } from '../stores/taskStore'
 import { useDirectoryStore } from '../stores/directoryStore'
 import { useActions } from '../lib/actionRegistry'
+import { getItemElementRect } from '../lib/dragUtils'
 import type { Task, Directory } from '../types'
 
 function isTask(item: Task | Directory): item is Task {
@@ -24,10 +30,18 @@ export function useGrabMode({ getItemsForColumn }: UseGrabModeOptions) {
   const pushKeyboardContext = useAppStore((s) => s.pushKeyboardContext)
   const popKeyboardContext = useAppStore((s) => s.popKeyboardContext)
   const navigationPath = useAppStore((s) => s.navigationPath)
+  const selectedItems = useAppStore((s) => s.selectedItems)
   const updateTask = useTaskStore((s) => s.updateTask)
   const updateDirectory = useDirectoryStore((s) => s.updateDirectory)
   const tasks = useTaskStore((s) => s.tasks)
   const directories = useDirectoryStore((s) => s.directories)
+
+  // Drag system integration
+  const startGrab = useUIStore((s) => s.startGrab)
+  const startDrag = useUIStore((s) => s.startDrag)
+  const updateDropTarget = useUIStore((s) => s.updateDropTarget)
+  const cancelDrag = useUIStore((s) => s.cancelDrag)
+  const completeDrop = useUIStore((s) => s.completeDrop)
 
   const enterGrabMode = useCallback(() => {
     if (!focusedItemId) return
@@ -38,7 +52,25 @@ export function useGrabMode({ getItemsForColumn }: UseGrabModeOptions) {
     const parentId = isTask(item) ? item.directory_id : (item.parent_id ?? '')
     setGrabModeItem(focusedItemId, parentId, item.position)
     pushKeyboardContext('grab')
-  }, [focusedItemId, focusedColumnIndex, getItemsForColumn, setGrabModeItem, pushKeyboardContext])
+
+    // Set drag visual state — grab all selected items or just the focused one
+    const itemIds = selectedItems.includes(focusedItemId)
+      ? [...selectedItems]
+      : [focusedItemId]
+    const elementRect = getItemElementRect(focusedItemId) ?? new DOMRect(0, 0, 0, 0)
+    startGrab(itemIds, { x: elementRect.x, y: elementRect.y, elementRect })
+    startDrag() // Immediately transition to dragging for keyboard grab
+
+    // Set initial drop indicator at current position
+    const idx = items.findIndex(i => i.id === focusedItemId)
+    const columnDirId = focusedColumnIndex === 0 ? null : navigationPath[focusedColumnIndex - 1]
+    updateDropTarget({
+      type: 'between',
+      targetId: columnDirId ?? 'home',
+      position: idx,
+      rect: elementRect,
+    })
+  }, [focusedItemId, focusedColumnIndex, getItemsForColumn, setGrabModeItem, pushKeyboardContext, selectedItems, startGrab, startDrag, updateDropTarget, navigationPath])
 
   const exitGrabMode = useCallback(async (commit: boolean) => {
     if (!commit && grabModeItemId) {
@@ -61,10 +93,13 @@ export function useGrabMode({ getItemsForColumn }: UseGrabModeOptions) {
           })
         }
       }
+      cancelDrag() // Clear drag visual state on cancel
+    } else {
+      completeDrop() // Clear drag visual state on commit
     }
     setGrabModeItem(null)
     popKeyboardContext()
-  }, [grabModeItemId, setGrabModeItem, popKeyboardContext, updateTask, updateDirectory])
+  }, [grabModeItemId, setGrabModeItem, popKeyboardContext, updateTask, updateDirectory, cancelDrag, completeDrop])
 
   const moveUp = useCallback(async () => {
     if (!grabModeItemId) return
@@ -89,7 +124,15 @@ export function useGrabMode({ getItemsForColumn }: UseGrabModeOptions) {
 
     // Keep focus on the grabbed item
     useAppStore.getState().setFocusedItem(grabModeItemId)
-  }, [grabModeItemId, focusedColumnIndex, getItemsForColumn, updateTask, updateDirectory])
+
+    // Update drop indicator to new position
+    const columnDirId = focusedColumnIndex === 0 ? null : navigationPath[focusedColumnIndex - 1]
+    updateDropTarget({
+      type: 'between',
+      targetId: columnDirId ?? 'home',
+      position: idx - 1,
+    })
+  }, [grabModeItemId, focusedColumnIndex, getItemsForColumn, updateTask, updateDirectory, updateDropTarget, navigationPath])
 
   const moveDown = useCallback(async () => {
     if (!grabModeItemId) return
@@ -113,7 +156,15 @@ export function useGrabMode({ getItemsForColumn }: UseGrabModeOptions) {
     }
 
     useAppStore.getState().setFocusedItem(grabModeItemId)
-  }, [grabModeItemId, focusedColumnIndex, getItemsForColumn, updateTask, updateDirectory])
+
+    // Update drop indicator to new position
+    const columnDirId = focusedColumnIndex === 0 ? null : navigationPath[focusedColumnIndex - 1]
+    updateDropTarget({
+      type: 'between',
+      targetId: columnDirId ?? 'home',
+      position: idx + 1,
+    })
+  }, [grabModeItemId, focusedColumnIndex, getItemsForColumn, updateTask, updateDirectory, updateDropTarget, navigationPath])
 
   const moveLeft = useCallback(async () => {
     if (!grabModeItemId || focusedColumnIndex <= 0) return

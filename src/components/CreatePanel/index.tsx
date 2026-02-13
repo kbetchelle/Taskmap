@@ -72,6 +72,7 @@ export function CreatePanel({
           description: null,
           is_completed: false,
           completed_at: null,
+          status: 'not_started' as const,
           position: 0,
           user_id: userId,
         })

@@ -4,6 +4,7 @@ import * as api from '../api/tasks'
 import { attemptAutoResolve } from '../api/conflictResolution'
 import { useConflictStore } from './conflictStore'
 import { useFeedbackStore } from './feedbackStore'
+import { deriveCompletionFields } from '../lib/statusUtils'
 
 interface TaskState {
   tasks: Task[]
@@ -30,6 +31,7 @@ interface TaskState {
         | 'description'
         | 'is_completed'
         | 'completed_at'
+        | 'status'
         | 'position'
         | 'directory_id'
         | 'recurrence_pattern'
@@ -82,7 +84,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const currentTask = get().tasks.find((t) => t.id === id)
     if (!currentTask) throw new Error('Task not found')
 
-    const result = await api.updateTaskWithConflictCheck(id, updates, currentTask)
+    // Derive is_completed + completed_at from status when status changes
+    let finalUpdates = { ...updates }
+    if (finalUpdates.status !== undefined) {
+      const derived = deriveCompletionFields(finalUpdates.status, currentTask.completed_at)
+      finalUpdates = { ...finalUpdates, ...derived }
+    }
+
+    const result = await api.updateTaskWithConflictCheck(id, finalUpdates, currentTask)
 
     if (result.success) {
       set({
@@ -106,6 +115,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         description: merged.description,
         is_completed: merged.is_completed,
         completed_at: merged.completed_at,
+        status: merged.status,
         position: merged.position,
         directory_id: merged.directory_id,
         recurrence_pattern: merged.recurrence_pattern,
@@ -138,6 +148,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         description: resolved.description,
         is_completed: resolved.is_completed,
         completed_at: resolved.completed_at,
+        status: resolved.status,
         position: resolved.position,
         directory_id: resolved.directory_id,
         recurrence_pattern: resolved.recurrence_pattern,

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BackslashMenuItem } from './BackslashMenuItem'
 import type { CommandDescriptor } from '../../lib/commandRegistry'
+import { STATUS_ORDER, getStatusLabel, getStatusColor } from '../../lib/statusUtils'
+import type { TaskStatus } from '../../types/database'
 
 // ── Props ────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,7 @@ export function BackslashMenu({
 }: BackslashMenuProps) {
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const [visible, setVisible] = useState(false)
+  const [subMenuParent, setSubMenuParent] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -66,9 +69,59 @@ export function BackslashMenu({
     return () => document.removeEventListener('mousedown', handleMouseDown)
   }, [onClose])
 
+  const handleCommandSelect = useCallback(
+    (cmd: CommandDescriptor) => {
+      if (cmd.hasSubMenu && (cmd.id === 'set-status' || cmd.id === 'complete-all')) {
+        setSubMenuParent(cmd.id)
+        setHighlightedIndex(0)
+        return
+      }
+      onExecute(cmd.id)
+    },
+    [onExecute]
+  )
+
+  const handleStatusSelect = useCallback(
+    (status: TaskStatus) => {
+      if (subMenuParent === 'complete-all') {
+        onExecute(`set-status-all:${status}`)
+      } else {
+        onExecute(`set-status:${status}`)
+      }
+    },
+    [onExecute, subMenuParent]
+  )
+
   // Keyboard handling on the input
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (subMenuParent) {
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault()
+            setHighlightedIndex((prev) => (prev + 1) % STATUS_ORDER.length)
+            break
+          case 'ArrowUp':
+            e.preventDefault()
+            setHighlightedIndex((prev) => (prev - 1 + STATUS_ORDER.length) % STATUS_ORDER.length)
+            break
+          case 'Enter':
+          case 'Tab':
+            e.preventDefault()
+            handleStatusSelect(STATUS_ORDER[highlightedIndex])
+            break
+          case 'Escape':
+          case 'Backspace':
+            e.preventDefault()
+            setSubMenuParent(null)
+            setHighlightedIndex(0)
+            break
+          default:
+            break
+        }
+        return
+      }
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault()
@@ -86,7 +139,7 @@ export function BackslashMenu({
         case 'Tab':
           e.preventDefault()
           if (commands.length > 0 && highlightedIndex < commands.length) {
-            onExecute(commands[highlightedIndex].id)
+            handleCommandSelect(commands[highlightedIndex])
           }
           break
         case 'Escape':
@@ -98,10 +151,36 @@ export function BackslashMenu({
           break
       }
     },
-    [commands, highlightedIndex, onExecute, onClose],
+    [commands, highlightedIndex, handleCommandSelect, handleStatusSelect, onClose, subMenuParent],
   )
 
   // ── Render ───────────────────────────────────────────────────────────
+
+  const statusSubMenu = (
+    <div className="px-1.5 pb-1.5">
+      <button
+        className="w-full flex items-center gap-2 px-3 py-1 text-flow-meta text-flow-textSecondary hover:bg-neutral-100 rounded mb-1"
+        onClick={() => { setSubMenuParent(null); setHighlightedIndex(0) }}
+      >
+        &#x2190; Back
+      </button>
+      {STATUS_ORDER.map((status, idx) => (
+        <button
+          key={status}
+          className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-flow-task rounded transition-colors ${
+            idx === highlightedIndex ? 'bg-neutral-100' : 'hover:bg-neutral-50'
+          }`}
+          onClick={() => handleStatusSelect(status)}
+        >
+          <span
+            className="w-3 h-3 rounded-sm flex-shrink-0"
+            style={{ backgroundColor: getStatusColor(status) }}
+          />
+          <span>{getStatusLabel(status)}</span>
+        </button>
+      ))}
+    </div>
+  )
 
   const menuContent = (
     <>
@@ -114,9 +193,9 @@ export function BackslashMenu({
                      px-3 py-1.5 text-flow-task text-flow-textPrimary
                      placeholder:text-flow-textDisabled
                      outline-none focus:border-flow-focus focus:ring-1 focus:ring-flow-focus/30"
-          placeholder="Type to filter..."
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder={subMenuParent ? 'Select status...' : 'Type to filter...'}
+          value={subMenuParent ? '' : query}
+          onChange={(e) => { if (!subMenuParent) onQueryChange(e.target.value) }}
           onKeyDown={handleKeyDown}
           role="combobox"
           aria-expanded
@@ -126,30 +205,34 @@ export function BackslashMenu({
         />
       </div>
 
-      {/* Command list */}
-      <div
-        id="backslash-menu-list"
-        className="overflow-y-auto px-1.5 pb-1.5"
-        style={{ maxHeight: 320 }}
-        role="listbox"
-      >
-        {commands.length > 0 ? (
-          commands.map((cmd, idx) => (
-            <BackslashMenuItem
-              key={cmd.id}
-              icon={cmd.icon}
-              label={cmd.label}
-              shortcutHint={cmd.shortcutHint}
-              isHighlighted={idx === highlightedIndex}
-              onClick={() => onExecute(cmd.id)}
-            />
-          ))
-        ) : (
-          <div className="px-3 py-4 text-center text-flow-meta text-flow-textDisabled">
-            No matching commands
-          </div>
-        )}
-      </div>
+      {/* Command list or status sub-menu */}
+      {subMenuParent ? (
+        statusSubMenu
+      ) : (
+        <div
+          id="backslash-menu-list"
+          className="overflow-y-auto px-1.5 pb-1.5"
+          style={{ maxHeight: 320 }}
+          role="listbox"
+        >
+          {commands.length > 0 ? (
+            commands.map((cmd, idx) => (
+              <BackslashMenuItem
+                key={cmd.id}
+                icon={cmd.icon}
+                label={cmd.label}
+                shortcutHint={cmd.shortcutHint}
+                isHighlighted={idx === highlightedIndex}
+                onClick={() => handleCommandSelect(cmd)}
+              />
+            ))
+          ) : (
+            <div className="px-3 py-4 text-center text-flow-meta text-flow-textDisabled">
+              No matching commands
+            </div>
+          )}
+        </div>
+      )}
     </>
   )
 

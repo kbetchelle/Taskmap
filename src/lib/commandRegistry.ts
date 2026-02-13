@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Pencil,
-  CheckSquare,
   Copy,
   Link,
   FolderInput,
@@ -12,6 +11,11 @@ import {
   FolderPlus,
   CheckCheck,
   FolderOutput,
+  ListChecks,
+  GitBranch,
+  List,
+  Calendar,
+  Columns3,
 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -35,6 +39,8 @@ export interface CommandDescriptor {
   scopes: CommandScope[]
   /** Return true if this command should be shown given the current context */
   isApplicable: (ctx: CommandContext) => boolean
+  /** When true, selecting this command opens a sub-menu instead of executing */
+  hasSubMenu?: boolean
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -63,13 +69,15 @@ const singleItemCommands: CommandDescriptor[] = [
     isApplicable: hasFocusedItem,
   },
   {
-    id: 'complete',
-    label: 'Complete',
-    icon: CheckSquare,
+    id: 'set-status',
+    label: 'Set Status',
+    icon: ListChecks,
     shortcutHint: 'Space',
     category: 'Actions',
     scopes: ['single'],
     isApplicable: (ctx) => hasFocusedItem(ctx) && hasTask(ctx),
+    /** When true, the BackslashMenu should show status sub-options instead of executing */
+    hasSubMenu: true,
   },
   {
     id: 'duplicate',
@@ -117,6 +125,14 @@ const singleItemCommands: CommandDescriptor[] = [
     isApplicable: (ctx) => hasFocusedItem(ctx) && hasTask(ctx),
   },
   {
+    id: 'view-dependencies',
+    label: 'View Dependencies',
+    icon: GitBranch,
+    category: 'Actions',
+    scopes: ['single'],
+    isApplicable: hasFocusedItem,
+  },
+  {
     id: 'delete',
     label: 'Delete',
     icon: Trash2,
@@ -132,11 +148,12 @@ const singleItemCommands: CommandDescriptor[] = [
 const multiItemCommands: CommandDescriptor[] = [
   {
     id: 'complete-all',
-    label: 'Complete All',
+    label: 'Set Status All',
     icon: CheckCheck,
     category: 'Bulk Actions',
     scopes: ['multi'],
     isApplicable: (ctx) => ctx.selectedItems.length > 1 && hasTask(ctx),
+    hasSubMenu: true,
   },
   {
     id: 'move-all',
@@ -188,6 +205,38 @@ const creationCommands: CommandDescriptor[] = [
   },
 ]
 
+// ── View switching commands ──────────────────────────────────────────────
+
+const viewCommands: CommandDescriptor[] = [
+  {
+    id: 'view-list',
+    label: 'Switch to List View',
+    icon: List,
+    shortcutHint: 'Cmd+Shift+1',
+    category: 'View',
+    scopes: ['single', 'multi', 'empty'],
+    isApplicable: () => true,
+  },
+  {
+    id: 'view-calendar',
+    label: 'Switch to Calendar View',
+    icon: Calendar,
+    shortcutHint: 'Cmd+Shift+2',
+    category: 'View',
+    scopes: ['single', 'multi', 'empty'],
+    isApplicable: () => true,
+  },
+  {
+    id: 'view-kanban',
+    label: 'Switch to Kanban View',
+    icon: Columns3,
+    shortcutHint: 'Cmd+Shift+3',
+    category: 'View',
+    scopes: ['single', 'multi', 'empty'],
+    isApplicable: () => true,
+  },
+]
+
 // ── Public API ───────────────────────────────────────────────────────────
 
 /** All registered command descriptors */
@@ -195,6 +244,7 @@ export const allCommands: CommandDescriptor[] = [
   ...singleItemCommands,
   ...multiItemCommands,
   ...creationCommands,
+  ...viewCommands,
 ]
 
 /**

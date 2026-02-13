@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback, useRef } from 'react'
 import { useShortcutDispatcher } from '../../hooks/useShortcutDispatcher'
+import { useAutoArchive } from '../../hooks/useAutoArchive'
 import { useAppStore } from '../../stores/appStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useConflictStore } from '../../stores/conflictStore'
@@ -19,6 +20,7 @@ import { ConflictDialog } from '../ConflictDialog'
 import { ArchiveView } from '../ArchiveView'
 import { MobileMenu } from '../MobileMenu'
 import { SidebarTree } from '../SidebarTree'
+import { DependencyGraph } from '../DependencyGraph'
 import {
   TOPBAR_HEIGHT_PX,
   SIDEBAR_WIDTH_DEFAULT,
@@ -31,6 +33,7 @@ interface AppContainerProps {
 
 export function AppContainer({ children }: AppContainerProps) {
   useShortcutDispatcher()
+  useAutoArchive()
   useMobileMode()
   const { breakpoint, isMobile } = useViewport()
   const currentView = useAppStore((s) => s.currentView)
@@ -42,6 +45,7 @@ export function AppContainer({ children }: AppContainerProps) {
   const setSearchBarOpen = useAppStore((s) => s.setSearchBarOpen)
   const searchBarOpen = useAppStore((s) => s.searchBarOpen)
   const onboardingOpen = useAppStore((s) => s.onboardingOpen)
+  const dependencyGraphOpen = useAppStore((s) => s.dependencyGraphOpen)
   const setHelpOpen = useAppStore((s) => s.setHelpOpen)
   const pendingConflict = useConflictStore((s) => s.pendingConflict)
   const resolveConflict = useConflictStore((s) => s.resolveConflict)
@@ -291,6 +295,7 @@ export function AppContainer({ children }: AppContainerProps) {
         />
       )}
       <MobileMenu />
+      {dependencyGraphOpen && <DependencyGraph />}
     </div>
   )
 }

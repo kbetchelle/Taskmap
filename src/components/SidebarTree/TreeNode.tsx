@@ -1,5 +1,7 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import type { TreeNode as TreeNodeType } from '../../types/sidebar'
+import { useDrop } from '../DragSystem/useDrop'
+import { DropHighlight } from '../DragSystem/DropIndicator'
 
 interface TreeNodeProps {
   node: TreeNodeType
@@ -29,6 +31,24 @@ export function TreeNode({
   onFocus,
 }: TreeNodeProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const isDir = node.type === 'directory'
+
+  // Register directory tree nodes as drop targets
+  const { dropRef: treeDropRef, isOver, isInvalid } = useDrop({
+    targetId: node.id,
+    type: 'into',
+    disabled: !isDir,
+    acceptsInto: true,
+  })
+
+  // Merge refs
+  const mergedRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      ;(ref as React.MutableRefObject<HTMLDivElement | null>).current = el
+      ;(treeDropRef as React.MutableRefObject<HTMLElement | null>).current = el
+    },
+    [treeDropRef]
+  )
 
   useEffect(() => {
     if (isFocused && ref.current) {
@@ -37,7 +57,6 @@ export function TreeNode({
     }
   }, [isFocused])
 
-  const isDir = node.type === 'directory'
   const showChevron = isDir && childCount > 0
 
   const bgClass = isActive
@@ -50,11 +69,11 @@ export function TreeNode({
 
   return (
     <div
-      ref={ref}
+      ref={mergedRef}
       role="treeitem"
       tabIndex={isFocused ? 0 : -1}
       data-node-id={node.id}
-      className={`flex items-center gap-1 min-h-[28px] px-2 py-1 cursor-pointer rounded transition-colors outline-none ${bgClass}`}
+      className={`relative flex items-center gap-1 min-h-[28px] px-2 py-1 cursor-pointer rounded transition-colors outline-none ${bgClass}`}
       style={{ paddingLeft: 8 + depth * 16 }}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('[data-chevron]')) return
@@ -104,6 +123,8 @@ export function TreeNode({
           ({childCount})
         </span>
       )}
+      {/* Drop highlight for drag-and-drop */}
+      {isDir && <DropHighlight isOver={isOver} isInvalid={isInvalid} type="into" />}
     </div>
   )
 }

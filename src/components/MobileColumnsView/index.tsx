@@ -7,9 +7,10 @@ import { useAppContext } from '../../contexts/AppContext'
 import { showInlineError } from '../../lib/inlineError'
 import { pushUndoAndPersist } from '../../lib/undo'
 import { useFeedbackStore } from '../../stores/feedbackStore'
-import type { Task, Directory, RecurringTask } from '../../types'
+import type { Task, Directory, RecurringTask, TaskStatus } from '../../types'
 import { createNextRecurrence } from '../../api/tasks'
 import type { ColorMode, ClipboardItem, FilterState } from '../../types/state'
+import { getNextStatus, deriveCompletionFields } from '../../lib/statusUtils'
 import { Column } from '../Column'
 import { TaskCreationPanel } from '../TaskCreationPanel'
 import { TaskEditPanel } from '../TaskEditPanel'
@@ -94,7 +95,6 @@ export function MobileColumnsView({
   const addTask = useTaskStore((s) => s.addTask)
   const updateTask = useTaskStore((s) => s.updateTask)
   const removeTask = useTaskStore((s) => s.removeTask)
-  const archiveTask = useTaskStore((s) => s.archiveTask)
   const patchTaskActualDuration = useTaskStore((s) => s.patchTaskActualDuration)
   const selectedItemIds = useAppStore((s) => s.selectedItems)
   const pushNavigation = useAppStore((s) => s.pushNavigation)
@@ -120,8 +120,6 @@ export function MobileColumnsView({
   const editPanelState = useUIStore((s) => s.editPanelState)
   const setEditPanelState = useUIStore((s) => s.setEditPanelState)
   const setDraggingItemId = useUIStore((s) => s.setDraggingItemId)
-  const setCompletionTimeout = useUIStore((s) => s.setCompletionTimeout)
-  const clearCompletionTimeout = useUIStore((s) => s.clearCompletionTimeout)
   const setMobileMenuOpen = useUIStore((s) => s.setMobileMenuOpen)
   const setClipboardItems = useAppStore((s) => s.setClipboardItems)
   const cutItemIds = useAppStore((s) => s.cutItemIds)
@@ -149,7 +147,7 @@ export function MobileColumnsView({
       dirs = filterByViewMode(dirs, viewMode)
       taskList = filterByViewMode(taskList, viewMode)
       if (viewMode === 'main_db' && !activeFilters.showCompleted)
-        taskList = taskList.filter((t) => !t.is_completed)
+        taskList = taskList.filter((t) => t.status !== 'completed')
       let combined: (Task | Directory)[] = [...dirs, ...taskList]
       const hasActiveFilters =
         activeFilters.searchQuery.trim() ||
@@ -185,7 +183,6 @@ export function MobileColumnsView({
     [directories, tasks, columnStack, viewMode, activeFilters, searchResultTaskIds]
   )
 
-  const COMPLETION_DELETE_MS = 6 * 60 * 60 * 1000
   const CREATION_TIMEOUT_MS = 10_000
   const setTasks = useTaskStore((s) => s.setTasks)
 
@@ -508,6 +505,7 @@ export function MobileColumnsView({
             user_id: userId!,
             is_completed: false,
             completed_at: null,
+            status: 'not_started' as const,
             archived_at: null,
             archive_reason: null,
             priority: preserveMetadata ? task.priority : null,
@@ -587,27 +585,25 @@ export function MobileColumnsView({
     ]
   )
 
-  const handleCompleteTask = useCallback(
-    async (taskId: string) => {
-      const task = tasks.find((t) => t.id === taskId)
-      if (!task || !isTask(task)) return
-      const items = getItemsForColumn(columnIndex)
-      const maxPosition = items.length === 0 ? 0 : Math.max(...items.map((i) => i.position))
-      const completedAt = new Date().toISOString()
+  const changeTaskStatus = useCallback(
+    async (taskId: string, newStatus?: TaskStatus) => {
       const prevTasks = useTaskStore.getState().tasks
+      const task = prevTasks.find((t) => t.id === taskId)
+      if (!task) return
+      const targetStatus = newStatus ?? getNextStatus(task.status)
+      const derived = deriveCompletionFields(targetStatus, task.completed_at)
+      const items = getItemsForColumn(columnIndex)
+      const positionUpdate = targetStatus === 'completed'
+        ? { position: (items.length === 0 ? 0 : Math.max(...items.map((i) => i.position))) + 1 }
+        : {}
+      const updates = { status: targetStatus, ...derived, ...positionUpdate }
       const optimistic = prevTasks.map((t) =>
-        t.id === task.id
-          ? { ...t, is_completed: true, completed_at: completedAt, position: maxPosition + 1 }
-          : t
+        t.id === taskId ? { ...t, ...updates } : t
       )
       setTasks(optimistic)
       try {
-        await updateTask(task.id, {
-          is_completed: true,
-          completed_at: completedAt,
-          position: maxPosition + 1,
-        })
-        if (task.recurrence_pattern) {
+        await updateTask(taskId, updates)
+        if (targetStatus === 'completed' && task.recurrence_pattern) {
           try {
             const nextTask = await createNextRecurrence(task as RecurringTask)
             if (nextTask) {
@@ -619,17 +615,27 @@ export function MobileColumnsView({
             useFeedbackStore.getState().showError('Failed to create next occurrence')
           }
         }
-        const timeoutId = setTimeout(() => {
-          archiveTask(task.id, 'completed')
-          clearCompletionTimeout(task.id)
-        }, COMPLETION_DELETE_MS)
-        setCompletionTimeout(task.id, timeoutId)
       } catch {
         setTasks(prevTasks)
-        useFeedbackStore.getState().showError('Failed to complete task')
+        useFeedbackStore.getState().showError('Failed to update status')
       }
     },
-    [getItemsForColumn, columnIndex, setTasks, updateTask, archiveTask, setCompletionTimeout, clearCompletionTimeout]
+    [getItemsForColumn, columnIndex, setTasks, updateTask]
+  )
+
+  const handleCompleteTask = useCallback(
+    (taskId: string) => changeTaskStatus(taskId, 'completed'),
+    [changeTaskStatus]
+  )
+
+  const handleStatusClick = useCallback(
+    (taskId: string) => changeTaskStatus(taskId),
+    [changeTaskStatus]
+  )
+
+  const handleStatusContextMenu = useCallback(
+    (taskId: string, status: TaskStatus) => changeTaskStatus(taskId, status),
+    [changeTaskStatus]
   )
 
   const handleTaskSwipeLeft = useCallback(
@@ -748,6 +754,8 @@ export function MobileColumnsView({
           onTaskSwipeRight={handleCompleteTask}
           onTaskSwipeLeft={handleTaskSwipeLeft}
           onTaskLongPress={handleTaskLongPress}
+          onStatusClick={handleStatusClick}
+          onStatusContextMenu={handleStatusContextMenu}
         />
       </div>
 

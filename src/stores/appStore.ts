@@ -69,6 +69,7 @@ interface AppStoreState {
   recentActions: { commandId: string; timestamp: number }[]
   grabModeItemId: string | null
   grabModeOriginalPosition: { parentId: string; position: number } | null
+  dependencyGraphOpen: boolean
 
   setCurrentView: (view: CurrentView) => void
   setCommandPaletteCommands: (commands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>) => void
@@ -116,6 +117,8 @@ interface AppStoreState {
   prependUndoHistory: (items: ActionHistoryItem[]) => void
   pushRecentAction: (commandId: string) => void
   setGrabModeItem: (id: string | null, parentId?: string, position?: number) => void
+  setDependencyGraphOpen: (open: boolean) => void
+  toggleDependencyGraph: () => void
 }
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
@@ -148,6 +151,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   recentActions: loadRecentActions(),
   grabModeItemId: null,
   grabModeOriginalPosition: null,
+  dependencyGraphOpen: false,
 
   setCurrentView: (view) => set({ currentView: view }),
   setCommandPaletteCommands: (commands) => set({ commandPaletteCommands: commands }),
@@ -268,4 +272,6 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
       persistRecentActions(next)
       return { recentActions: next }
     }),
+  setDependencyGraphOpen: (open) => set({ dependencyGraphOpen: open }),
+  toggleDependencyGraph: () => set((s) => ({ dependencyGraphOpen: !s.dependencyGraphOpen })),
 }))

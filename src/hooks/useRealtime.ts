@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useAppStore } from '../stores/appStore'
 import { useDirectoryStore } from '../stores/directoryStore'
 import { useTaskStore } from '../stores/taskStore'
+import { useLinkStore } from '../stores/linkStore'
 import { getSubscriptionManager } from '../lib/subscriptionManager'
 
 export function useRealtimeSubscriptions() {
@@ -11,6 +12,7 @@ export function useRealtimeSubscriptions() {
   const currentView = useAppStore((s) => s.currentView)
   const fetchDirectories = useDirectoryStore((s) => s.fetchDirectories)
   const fetchTasksByUser = useTaskStore((s) => s.fetchTasksByUser)
+  const fetchLinksForUser = useLinkStore((s) => s.fetchLinksForUser)
 
   useEffect(() => {
     if (!userId) return
@@ -19,6 +21,7 @@ export function useRealtimeSubscriptions() {
     manager.setCallbacks({
       onDirectoriesChange: () => fetchDirectories(userId),
       onTasksChange: () => fetchTasksByUser(userId),
+      onLinksChange: () => fetchLinksForUser(userId),
     })
 
     if (currentView === 'main_db' || currentView === 'upcoming') {
@@ -30,5 +33,5 @@ export function useRealtimeSubscriptions() {
     return () => {
       manager.unsubscribeAll()
     }
-  }, [userId, navigationPath, currentView, fetchDirectories, fetchTasksByUser])
+  }, [userId, navigationPath, currentView, fetchDirectories, fetchTasksByUser, fetchLinksForUser])
 }
