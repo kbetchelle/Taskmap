@@ -55,7 +55,7 @@ export function MobileMenu() {
         aria-hidden
       />
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 rounded-t-2xl shadow-lg overflow-hidden max-h-[80vh] overflow-y-auto animate-slide-up"
+        className="absolute bottom-0 left-0 right-0 bg-flow-background rounded-t-2xl shadow-lg overflow-hidden max-h-[80vh] overflow-y-auto animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col gap-1 p-4">
@@ -70,21 +70,21 @@ export function MobileMenu() {
             <button
               type="button"
               onClick={() => handleView('main_db')}
-              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-flow-hover rounded-lg transition-colors"
             >
               Today
             </button>
             <button
               type="button"
               onClick={() => handleView('upcoming')}
-              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-flow-hover rounded-lg transition-colors"
             >
               Upcoming
             </button>
             <button
               type="button"
               onClick={() => handleView('archive')}
-              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-flow-hover rounded-lg transition-colors"
             >
               Archive
             </button>
@@ -97,14 +97,14 @@ export function MobileMenu() {
             <button
               type="button"
               onClick={handleSearch}
-              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-flow-hover rounded-lg transition-colors"
             >
               🔍 Search
             </button>
             <button
               type="button"
               onClick={() => handleView('settings')}
-              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-flow-hover rounded-lg transition-colors"
             >
               Settings
             </button>
@@ -120,7 +120,7 @@ export function MobileMenu() {
               className={`flex items-center gap-2 px-4 py-3 text-left rounded-lg transition-colors ${
                 colorMode === 'none'
                   ? 'bg-flow-focus/10 text-flow-focus'
-                  : 'text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                  : 'text-flow-textPrimary hover:bg-flow-hover'
               }`}
             >
               No color
@@ -131,7 +131,7 @@ export function MobileMenu() {
               className={`flex items-center gap-2 px-4 py-3 text-left rounded-lg transition-colors ${
                 colorMode === 'category'
                   ? 'bg-flow-focus/10 text-flow-focus'
-                  : 'text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                  : 'text-flow-textPrimary hover:bg-flow-hover'
               }`}
             >
               Category color
@@ -142,7 +142,7 @@ export function MobileMenu() {
               className={`flex items-center gap-2 px-4 py-3 text-left rounded-lg transition-colors ${
                 colorMode === 'priority'
                   ? 'bg-flow-focus/10 text-flow-focus'
-                  : 'text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                  : 'text-flow-textPrimary hover:bg-flow-hover'
               }`}
             >
               Priority color
@@ -150,7 +150,7 @@ export function MobileMenu() {
             <button
               type="button"
               onClick={handleToggleCompleted}
-              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-flow-hover rounded-lg transition-colors"
             >
               {activeFilters.showCompleted ? '✓ ' : ''}Show completed tasks
             </button>
@@ -160,7 +160,7 @@ export function MobileMenu() {
             <button
               type="button"
               onClick={handleShortcuts}
-              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-3 text-left text-flow-textPrimary hover:bg-flow-hover rounded-lg transition-colors"
             >
               ⌘ Keyboard shortcuts
             </button>

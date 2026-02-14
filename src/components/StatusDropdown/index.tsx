@@ -49,14 +49,14 @@ export function StatusDropdown({
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-white rounded-lg shadow-lg border border-flow-columnBorder py-1 min-w-[180px]"
+      className="fixed z-50 bg-flow-background rounded-lg shadow-lg border border-flow-columnBorder py-1 min-w-[180px]"
       style={{ top: anchorPosition.top, left: anchorPosition.left }}
     >
       {STATUS_ORDER.map((status) => (
         <button
           key={status}
-          className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-flow-task hover:bg-neutral-100 transition-colors ${
-            status === currentStatus ? 'bg-neutral-50 font-flow-medium' : ''
+          className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-flow-task hover:bg-flow-hover transition-colors ${
+            status === currentStatus ? 'bg-flow-surface font-flow-medium' : ''
           }`}
           onClick={() => {
             onSelect(status)

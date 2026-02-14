@@ -10,6 +10,16 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Taskmap</title>
+    <script>
+      (function(){
+        var m=localStorage.getItem('taskmap-theme-mode')||'system';
+        var d=m==='dark'||(m==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);
+        var t=d?'dark':'light';
+        document.documentElement.setAttribute('data-theme',t);
+        var mc=document.querySelector('meta[name="theme-color"]');
+        if(mc)mc.setAttribute('content',d?'#1A1A1A':'#FFFFFF');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -471,10 +471,26 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
 
   const CREATION_TIMEOUT_MS = 10_000
 
-  const initiateCreation = useCallback(() => {
+  const openCreationModal = useUIStore((s) => s.openCreationModal)
+  const creationMode = useSettingsStore((s) => s.settings?.creation_mode ?? 'modal')
+
+  const initiateCreation = useCallback((typeOverride?: 'task' | 'directory') => {
+    const parentDirectoryId = columnIds[focusedColumnIndex] ?? null
     const items = getItemsForColumn(focusedColumnIndex)
     const idx = focusedItemId ? items.findIndex((i) => i.id === focusedItemId) : -1
     const itemIndex = idx >= 0 ? idx : items.length
+
+    // Modal mode: use the unified CreationModal
+    if (creationMode === 'modal') {
+      openCreationModal({
+        parentDirectoryId,
+        type: typeOverride ?? (focusedColumnIndex === 0 ? 'directory' : 'task'),
+        position: itemIndex,
+      })
+      return
+    }
+
+    // Inline mode: legacy flow
     const newItemId = crypto.randomUUID()
     setCreationState({
       mode: 'type-select',
@@ -491,12 +507,15 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   }, [
     focusedColumnIndex,
     focusedItemId,
+    columnIds,
     getItemsForColumn,
     setCreationState,
     pushKeyboardContext,
     setCreationTimeoutId,
     cancelCreation,
     popKeyboardContext,
+    creationMode,
+    openCreationModal,
   ])
 
   const handleCancelCreation = useCallback(() => {
@@ -1439,13 +1458,26 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
           initiateDelete()
           break
         case 'new-task':
-          initiateCreation()
-          // Simulate pressing 'T' after creation type-select opens
-          setTimeout(() => handleCreationTypeTask(), 50)
+          if (creationMode === 'modal') {
+            openCreationModal({
+              parentDirectoryId: columnIds[focusedColumnIndex] ?? null,
+              type: 'task',
+            })
+          } else {
+            initiateCreation()
+            setTimeout(() => handleCreationTypeTask(), 50)
+          }
           break
         case 'new-directory':
-          initiateCreation()
-          setTimeout(() => handleCreationTypeDirectory(), 50)
+          if (creationMode === 'modal') {
+            openCreationModal({
+              parentDirectoryId: columnIds[focusedColumnIndex] ?? null,
+              type: 'directory',
+            })
+          } else {
+            initiateCreation()
+            setTimeout(() => handleCreationTypeDirectory(), 50)
+          }
           break
         // Multi-item commands
         case 'complete-all': {
@@ -1551,8 +1583,8 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     colorPriority: () => setColorMode('priority'),
     cmdSlash: () => setShortcutSheetOpen(true),
     // Create actions (both shortcuts trigger initiateCreation)
-    newTask: initiateCreation,
-    newDirectory: initiateCreation,
+    newTask: () => initiateCreation('task'),
+    newDirectory: () => initiateCreation('directory'),
     // Creation context
     creationTypeTask: handleCreationTypeTask,
     creationTypeDirectory: handleCreationTypeDirectory,
@@ -1843,11 +1875,25 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
                   <CalendarView
                     data={lastColumnViewData.data}
                     directoryId={directoryId}
+                    onCreateTask={(dirId, prefilledDate) => {
+                      openCreationModal({
+                        parentDirectoryId: dirId,
+                        type: 'task',
+                        dueDate: prefilledDate,
+                      })
+                    }}
                   />
                 )}
                 {activeViewType === 'kanban' && lastColumnViewData.type === 'kanban' && (
                   <KanbanView
                     data={lastColumnViewData.data}
+                    onAddTask={(status) => {
+                      openCreationModal({
+                        parentDirectoryId: directoryId,
+                        type: 'task',
+                        status,
+                      })
+                    }}
                   />
                 )}
               </div>

@@ -79,7 +79,7 @@ export function MobileBottomSheet({
     >
       <div
         ref={sheetRef}
-        className="mobile-bottom-sheet fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-900 border-t border-flow-columnBorder rounded-t-2xl shadow-lg flex flex-col overflow-hidden"
+        className="mobile-bottom-sheet fixed bottom-0 left-0 right-0 bg-flow-background border-t border-flow-columnBorder rounded-t-2xl shadow-lg flex flex-col overflow-hidden"
         style={{
           height: heightPx != null ? `${heightPx}px` : `${DEFAULT_HEIGHT_VH}vh`,
         }}

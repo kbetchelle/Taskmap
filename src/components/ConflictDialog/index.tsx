@@ -73,7 +73,7 @@ export function ConflictDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white p-4 shadow-lg"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-flow-columnBorder bg-flow-background p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="conflict-dialog">
@@ -98,7 +98,7 @@ export function ConflictDialog({
                       <label className="block text-xs text-flow-textSecondary">
                         {FIELD_LABELS[field] ?? field}:
                       </label>
-                      <div className="field-value text-sm text-flow-textPrimary p-2 bg-neutral-50 rounded">
+                      <div className="field-value text-sm text-flow-textPrimary p-2 bg-flow-surface rounded">
                         {formatFieldValue(conflict.localData[field as keyof (Task | Directory)])}
                       </div>
                     </div>
@@ -116,7 +116,7 @@ export function ConflictDialog({
                       <label className="block text-xs text-flow-textSecondary">
                         {FIELD_LABELS[field] ?? field}:
                       </label>
-                      <div className="field-value text-sm text-flow-textPrimary p-2 bg-neutral-50 rounded">
+                      <div className="field-value text-sm text-flow-textPrimary p-2 bg-flow-surface rounded">
                         {formatFieldValue(conflict.remoteData[field as keyof (Task | Directory)])}
                       </div>
                     </div>

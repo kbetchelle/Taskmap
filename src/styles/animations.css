@@ -51,7 +51,7 @@
 
 /* Focus indicator (keyboard-first, no hover) */
 .item-focused {
-  outline: 2px solid #007AFF;
+  outline: 2px solid var(--flow-focus);
   outline-offset: -2px;
   transition: outline 150ms ease-in-out;
 }
@@ -95,7 +95,7 @@
   left: 0;
   right: 0;
   padding: 4px 8px;
-  background-color: #ff3b30;
+  background-color: var(--flow-error);
   color: white;
   font-size: 11px;
   border-radius: 4px;

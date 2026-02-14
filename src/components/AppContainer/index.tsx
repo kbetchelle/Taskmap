@@ -3,6 +3,7 @@ import { useShortcutDispatcher } from '../../hooks/useShortcutDispatcher'
 import { useAutoArchive } from '../../hooks/useAutoArchive'
 import { useNetworkStatus } from '../../hooks/useNetworkStatus'
 import { useOfflineCache } from '../../hooks/useOfflineCache'
+import { useTheme } from '../../hooks/useTheme'
 import { useNetworkStore } from '../../stores/networkStore'
 import { useAppStore } from '../../stores/appStore'
 import { useUIStore } from '../../stores/uiStore'
@@ -29,6 +30,7 @@ import { ConnectionIndicator } from '../ConnectionIndicator'
 import { FloatingActionButton } from '../FloatingActionButton'
 import { BottomNavBar } from '../BottomNavBar'
 import { MultiSelectToolbar } from '../MultiSelectToolbar'
+import { CreationModal } from '../CreationModal'
 import {
   TOPBAR_HEIGHT_PX,
   SIDEBAR_WIDTH_DEFAULT,
@@ -44,6 +46,7 @@ export function AppContainer({ children }: AppContainerProps) {
   useAutoArchive()
   useNetworkStatus()
   useOfflineCache()
+  useTheme()
   useMobileMode()
   const isOffline = useNetworkStore((s) => !s.isOnline)
   const { breakpoint, isMobile } = useViewport()
@@ -355,6 +358,7 @@ export function AppContainer({ children }: AppContainerProps) {
         />
       )}
       <MobileMenu />
+      <CreationModal />
       {dependencyGraphOpen && <DependencyGraph />}
       {/* Mobile-only components */}
       {isMobile && <FloatingActionButton />}

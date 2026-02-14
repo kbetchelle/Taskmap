@@ -91,7 +91,7 @@ export function CreatePanel({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg"
+        className="w-full max-w-sm rounded-lg border border-flow-columnBorder bg-flow-background p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-base font-medium text-neutral-900 mb-3">

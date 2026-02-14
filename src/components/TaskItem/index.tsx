@@ -117,6 +117,24 @@ export function TaskItem({
     [onStatusContextMenu, task.id]
   )
 
+  // For link items: single click opens URL, Cmd+Click opens detail panel
+  const handleLinkClick = useCallback(
+    (e?: React.MouseEvent) => {
+      if (task.url) {
+        if (e && (e.metaKey || e.ctrlKey)) {
+          // Cmd/Ctrl+Click → open expanded panel
+          onExpand()
+        } else {
+          // Normal click → open URL in new tab
+          window.open(task.url, '_blank', 'noopener,noreferrer')
+        }
+        return
+      }
+      onSelect(e)
+    },
+    [task.url, onSelect, onExpand],
+  )
+
   useTouchGestures(
     listItemRef as React.RefObject<HTMLElement | null>,
     {
@@ -140,17 +158,27 @@ export function TaskItem({
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         type="task"
-        onSelect={onSelect}
+        onSelect={task.url ? handleLinkClick : onSelect}
         onExpand={onExpand}
         className={`${isCompleted ? 'task-complete' : ''} ${completed ? 'transition-opacity duration-300' : ''} ${isBlocked ? 'opacity-75' : ''}`}
       >
-        <StatusIcon
-          status={task.status}
-          size={16}
-          onClick={handleStatusClick}
-          onContextMenu={handleStatusContextMenu}
-          className="mr-1.5"
-        />
+        {task.url ? (
+          <span
+            className="flex-shrink-0 mr-1.5 text-flow-focus cursor-pointer"
+            title="Hyperlink"
+            aria-label="Link item"
+          >
+            &#x1F517;
+          </span>
+        ) : (
+          <StatusIcon
+            status={task.status}
+            size={16}
+            onClick={handleStatusClick}
+            onContextMenu={handleStatusContextMenu}
+            className="mr-1.5"
+          />
+        )}
         {isBlocked && (
           <span
             className="flex-shrink-0 mr-1 text-flow-meta"

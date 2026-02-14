@@ -102,19 +102,19 @@ function GettingStartedPage() {
         </h3>
         <ul className="list-disc pl-5 text-flow-task text-flow-textSecondary space-y-1.5 m-0">
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{newTaskShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{newTaskShortcut}</kbd>
             {' '}— Create a task or directory
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{cmdSlashShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{cmdSlashShortcut}</kbd>
             {' '}— Show keyboard shortcuts
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{commandPaletteShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{commandPaletteShortcut}</kbd>
             {' '}— Command palette
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{settingsShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{settingsShortcut}</kbd>
             {' '}— Open settings
           </li>
           <li>Use arrow keys to move focus; Enter to open a task or expand a directory.</li>
@@ -171,14 +171,14 @@ export function HelpSheet() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-shrink-0 px-4 py-3 border-b border-flow-columnBorder flex items-center justify-between">
-          <div className="flex gap-1 rounded-md p-0.5 bg-neutral-100 dark:bg-neutral-800" role="tablist">
+          <div className="flex gap-1 rounded-md p-0.5 bg-flow-surface" role="tablist">
             <button
               type="button"
               role="tab"
               aria-selected={page === 'shortcuts'}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                 page === 'shortcuts'
-                  ? 'bg-white dark:bg-neutral-700 text-flow-textPrimary shadow-sm'
+                  ? 'bg-flow-background text-flow-textPrimary shadow-sm'
                   : 'text-flow-textSecondary hover:text-flow-textPrimary'
               }`}
               onClick={() => setPage('shortcuts')}
@@ -191,7 +191,7 @@ export function HelpSheet() {
               aria-selected={page === 'getting-started'}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                 page === 'getting-started'
-                  ? 'bg-white dark:bg-neutral-700 text-flow-textPrimary shadow-sm'
+                  ? 'bg-flow-background text-flow-textPrimary shadow-sm'
                   : 'text-flow-textSecondary hover:text-flow-textPrimary'
               }`}
               onClick={() => setPage('getting-started')}

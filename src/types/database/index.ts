@@ -62,6 +62,7 @@ export interface Task {
   user_id: string;
   version?: number;
   updated_by?: string | null;
+  url?: string | null;
   recurrence_pattern?: RecurrencePattern | null;
   recurrence_parent_id?: string | null;
   recurrence_series_id?: string | null;
@@ -116,8 +117,20 @@ export interface UserSettings {
   saved_views?: SavedViewRow[] | null;
   skip_starter_structure: boolean;
   custom_shortcuts?: Record<string, string> | null;
+  theme_mode?: 'light' | 'dark' | 'system';
+  accent_color?: string;
+  creation_mode?: 'modal' | 'inline';
   created_at: string;
   updated_at: string;
+}
+
+/** Context passed when opening the creation modal. */
+export interface CreationContext {
+  parentDirectoryId: string | null;
+  type?: 'task' | 'directory' | 'link';
+  status?: TaskStatus;
+  dueDate?: string;
+  position?: number;
 }
 
 export interface ActionHistory {

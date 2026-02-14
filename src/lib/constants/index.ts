@@ -70,6 +70,9 @@ export const DEFAULT_SETTINGS_PAYLOAD = {
   },
   background_color_palette: [...DEFAULT_BACKGROUND_PALETTE],
   skip_starter_structure: false,
+  theme_mode: 'system' as const,
+  accent_color: '#007AFF',
+  creation_mode: 'modal' as const,
 }
 
 // Keyboard shortcuts have been moved to src/lib/shortcutRegistry.ts (SHORTCUT_BINDINGS)

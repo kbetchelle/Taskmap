@@ -3,6 +3,7 @@
 export type KeyboardContext =
   | 'navigation'
   | 'creation'
+  | 'creation_modal'
   | 'editing'
   | 'search'
   | 'settings'

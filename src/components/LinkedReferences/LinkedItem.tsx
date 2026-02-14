@@ -30,7 +30,7 @@ export function LinkedItem({
   if (!linkedTask) return null
 
   return (
-    <div className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-neutral-50 transition-colors group">
+    <div className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-flow-hover transition-colors group">
       <StatusIcon status={linkedTask.status} size={14} />
       <button
         className="flex-1 text-left text-flow-task text-flow-textPrimary truncate hover:underline"
@@ -43,7 +43,7 @@ export function LinkedItem({
         className={`flex-shrink-0 rounded px-1.5 py-0.5 text-flow-meta ${
           link.link_type === 'dependency'
             ? 'text-orange-600 bg-orange-50'
-            : 'text-flow-textSecondary bg-gray-100'
+            : 'text-flow-textSecondary bg-flow-surface'
         }`}
       >
         {link.link_type === 'dependency' ? 'Dependency' : 'Reference'}

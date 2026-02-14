@@ -37,13 +37,13 @@ export function ColorPicker({ value, onChange, presets }: ColorPickerProps) {
       </div>
       <button
         type="button"
-        className="self-start px-3 py-1.5 text-xs font-medium text-[#007AFF] bg-transparent border border-flow-columnBorder rounded-md cursor-pointer transition-colors hover:bg-neutral-50"
+        className="self-start px-3 py-1.5 text-xs font-medium text-flow-focus bg-transparent border border-flow-columnBorder rounded-md cursor-pointer transition-colors hover:bg-flow-surface"
         onClick={() => setShowCustom(true)}
       >
         Custom…
       </button>
       {showCustom && (
-        <div className="flex items-center gap-2 p-3 bg-neutral-50 rounded-md">
+        <div className="flex items-center gap-2 p-3 bg-flow-surface rounded-md">
           <input
             type="color"
             className="w-10 h-8 border border-flow-columnBorder rounded cursor-pointer"
@@ -53,14 +53,14 @@ export function ColorPicker({ value, onChange, presets }: ColorPickerProps) {
           />
           <input
             type="text"
-            className="flex-1 px-2 py-1.5 text-sm font-mono border border-flow-columnBorder rounded"
+            className="flex-1 px-2 py-1.5 text-sm font-mono border border-flow-columnBorder rounded bg-flow-background text-flow-textPrimary"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="#000000"
           />
           <button
             type="button"
-            className="px-3 py-1.5 text-xs font-medium text-white bg-[#007AFF] border-0 rounded cursor-pointer"
+            className="px-3 py-1.5 text-xs font-medium text-white bg-flow-focus border-0 rounded cursor-pointer"
             onClick={() => setShowCustom(false)}
           >
             Done

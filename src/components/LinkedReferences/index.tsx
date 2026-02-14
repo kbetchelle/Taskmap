@@ -88,7 +88,7 @@ export function LinkedReferences({ taskId }: LinkedReferencesProps) {
         </span>
         Linked References
         {totalCount > 0 && (
-          <span className="text-flow-meta bg-neutral-100 rounded-full px-1.5 py-0.5 font-flow-normal normal-case">
+          <span className="text-flow-meta bg-flow-surface rounded-full px-1.5 py-0.5 font-flow-normal normal-case">
             {totalCount}
           </span>
         )}

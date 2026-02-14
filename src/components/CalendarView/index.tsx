@@ -133,7 +133,7 @@ export function CalendarView({ data, onCreateTask, directoryId }: CalendarViewPr
             className={`px-3 py-1 text-flow-meta font-flow-medium transition-colors ${
               mode === 'month'
                 ? 'bg-flow-focus text-white'
-                : 'bg-flow-background text-flow-textSecondary hover:bg-gray-50'
+                : 'bg-flow-background text-flow-textSecondary hover:bg-flow-hover'
             }`}
             onClick={() => setMode('month')}
           >
@@ -144,7 +144,7 @@ export function CalendarView({ data, onCreateTask, directoryId }: CalendarViewPr
             className={`px-3 py-1 text-flow-meta font-flow-medium transition-colors ${
               mode === 'week'
                 ? 'bg-flow-focus text-white'
-                : 'bg-flow-background text-flow-textSecondary hover:bg-gray-50'
+                : 'bg-flow-background text-flow-textSecondary hover:bg-flow-hover'
             }`}
             onClick={() => setMode('week')}
           >

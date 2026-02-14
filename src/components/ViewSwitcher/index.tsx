@@ -32,7 +32,7 @@ export function ViewSwitcher({ activeView, onViewChange }: ViewSwitcherProps) {
               ${
                 isActive
                   ? 'bg-flow-focus text-white'
-                  : 'bg-flow-background text-flow-textSecondary hover:bg-gray-50'
+                  : 'bg-flow-background text-flow-textSecondary hover:bg-flow-hover'
               }
             `}
             onClick={() => onViewChange(view.id)}

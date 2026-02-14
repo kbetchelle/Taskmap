@@ -80,7 +80,7 @@ export function DependencyGraph() {
   }, [handleClose])
 
   return (
-    <div className="fixed inset-0 z-[1300] bg-white flex flex-col">
+    <div className="fixed inset-0 z-[1300] bg-flow-background flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-flow-columnBorder">
         <div className="flex items-center gap-4">
@@ -92,7 +92,7 @@ export function DependencyGraph() {
               className={`px-2.5 py-1 text-flow-meta rounded transition-colors ${
                 scope === 'current'
                   ? 'bg-flow-focus text-white'
-                  : 'bg-neutral-100 text-flow-textSecondary hover:bg-neutral-200'
+                  : 'bg-flow-surface text-flow-textSecondary hover:bg-flow-hover'
               }`}
               onClick={() => setScope('current')}
             >
@@ -102,7 +102,7 @@ export function DependencyGraph() {
               className={`px-2.5 py-1 text-flow-meta rounded transition-colors ${
                 scope === 'all'
                   ? 'bg-flow-focus text-white'
-                  : 'bg-neutral-100 text-flow-textSecondary hover:bg-neutral-200'
+                  : 'bg-flow-surface text-flow-textSecondary hover:bg-flow-hover'
               }`}
               onClick={() => setScope('all')}
             >
@@ -111,7 +111,7 @@ export function DependencyGraph() {
           </div>
         </div>
         <button
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-neutral-100 transition-colors text-flow-textSecondary hover:text-flow-textPrimary text-lg"
+          className="w-8 h-8 flex items-center justify-center rounded hover:bg-flow-hover transition-colors text-flow-textSecondary hover:text-flow-textPrimary text-lg"
           onClick={handleClose}
           aria-label="Close dependency graph"
         >
@@ -120,7 +120,7 @@ export function DependencyGraph() {
       </div>
 
       {/* Canvas */}
-      <div className="flex-1 overflow-hidden bg-neutral-50">
+      <div className="flex-1 overflow-hidden bg-flow-surface">
         {scopedTasks.length === 0 ? (
           <div className="flex items-center justify-center h-full text-flow-textDisabled text-base">
             No linked tasks to display

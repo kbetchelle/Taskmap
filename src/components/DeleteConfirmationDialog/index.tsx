@@ -67,7 +67,7 @@ export function DeleteConfirmationDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg"
+        className="w-full max-w-sm rounded-lg border border-flow-columnBorder bg-flow-background p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-sm text-neutral-900 whitespace-pre-wrap mb-4">{message}</p>

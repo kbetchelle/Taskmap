@@ -15,6 +15,8 @@ import { SettingsInput } from './SettingsInput'
 import { DEFAULT_SETTINGS_PAYLOAD, COLOR_PRESETS } from '../../lib/constants'
 import { applySettingsToUI } from '../../lib/applySettingsToUI'
 import { upsertUserSettings } from '../../api/userSettings'
+import { useThemeStore } from '../../stores/themeStore'
+import { ThemeSection } from './ThemeSection'
 
 interface SettingsPanelProps {
   onClose: () => void
@@ -51,6 +53,7 @@ function buildDraft(settings: UserSettings | null, userId: string): SettingsDraf
         : defaults.background_color_palette,
     saved_views: settings.saved_views ?? null,
     skip_starter_structure: settings.skip_starter_structure ?? defaults.skip_starter_structure,
+    creation_mode: settings.creation_mode ?? defaults.creation_mode,
   } as SettingsDraft
 }
 
@@ -77,6 +80,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     if (!userId || !hasChanges) return
     setSaving(true)
     try {
+      const themeState = useThemeStore.getState()
       const payload = {
         user_id: userId,
         default_view: draft.default_view,
@@ -87,6 +91,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         category_names: draft.category_names,
         background_color_palette: draft.background_color_palette,
         skip_starter_structure: draft.skip_starter_structure,
+        theme_mode: themeState.themeMode,
+        accent_color: themeState.accentColor,
+        creation_mode: draft.creation_mode,
       }
       const updated = await upsertUserSettings(payload)
       useSettingsStore.getState().setSettings(updated)
@@ -149,6 +156,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-8">
+        <ThemeSection />
+
         <SettingsSection title="General">
           <SettingField
             label="Default View"
@@ -173,6 +182,19 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               options={[
                 { value: 'sunday', label: 'Sunday' },
                 { value: 'monday', label: 'Monday' },
+              ]}
+            />
+          </SettingField>
+          <SettingField
+            label="Creation Mode"
+            description="How new tasks and directories are created"
+          >
+            <SettingsSelect
+              value={draft.creation_mode ?? 'modal'}
+              onChange={(v) => updateSetting('creation_mode', v as 'modal' | 'inline')}
+              options={[
+                { value: 'modal', label: 'Modal (unified dialog)' },
+                { value: 'inline', label: 'Inline (classic)' },
               ]}
             />
           </SettingField>

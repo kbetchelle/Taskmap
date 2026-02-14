@@ -14,7 +14,7 @@ export function SettingsInput({
   return (
     <input
       type="text"
-      className={`w-full px-3 py-2 text-sm text-flow-textPrimary bg-white border border-flow-columnBorder rounded-md transition-colors hover:border-neutral-300 focus:outline-none focus:border-flow-focus placeholder:text-flow-textSecondary ${className}`}
+      className={`w-full px-3 py-2 text-sm text-flow-textPrimary bg-flow-background border border-flow-columnBorder rounded-md transition-colors hover:border-flow-columnBorder focus:outline-none focus:border-flow-focus placeholder:text-flow-textSecondary ${className}`}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}

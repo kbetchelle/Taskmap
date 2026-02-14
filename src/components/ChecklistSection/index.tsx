@@ -99,7 +99,7 @@ export function ChecklistSection({ task, onUpdate }: ChecklistSectionProps) {
       </div>
 
       {items.length > 0 && (
-        <div className="h-1 bg-neutral-200 dark:bg-neutral-600 rounded overflow-hidden">
+        <div className="h-1 bg-flow-skeleton rounded overflow-hidden">
           <div
             className="h-full bg-[#34C759] transition-[width] duration-300 ease-out"
             style={{ width: `${progress}%` }}
@@ -111,7 +111,7 @@ export function ChecklistSection({ task, onUpdate }: ChecklistSectionProps) {
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors group"
+            className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-flow-hover transition-colors group"
           >
             <input
               type="checkbox"

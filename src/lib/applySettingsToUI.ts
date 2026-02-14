@@ -1,11 +1,14 @@
 import type { UserSettings } from '../types'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useThemeStore } from '../stores/themeStore'
 import { colors } from './theme'
 import { DEFAULT_SETTINGS_PAYLOAD } from './constants'
+import type { ThemeMode } from './themeTokens'
 
 /**
- * Applies user settings to the UI: sets CSS variables and updates the settings store
- * so components that read from the store or vars reflect the new colors.
+ * Applies user settings to the UI: sets CSS variables, syncs theme/accent from
+ * Supabase settings into the theme store, and updates the settings store so
+ * components that read from the store or vars reflect the new colors.
  */
 export function applySettingsToUI(settings: UserSettings | null): void {
   if (!settings) return
@@ -29,6 +32,18 @@ export function applySettingsToUI(settings: UserSettings | null): void {
   palette.forEach((color, i) => {
     root.style.setProperty(`--background-palette-${i}`, color)
   })
+
+  // Sync theme/accent from Supabase settings → themeStore (authoritative source)
+  const themeStore = useThemeStore.getState()
+  if (settings.theme_mode) {
+    const mode = settings.theme_mode as ThemeMode
+    if (mode !== themeStore.themeMode) {
+      themeStore.setThemeMode(mode)
+    }
+  }
+  if (settings.accent_color && settings.accent_color !== themeStore.accentColor) {
+    themeStore.setAccentColor(settings.accent_color)
+  }
 
   useSettingsStore.getState().setSettings(settings)
 }

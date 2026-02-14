@@ -211,7 +211,7 @@ export function ContentEditor({ initialContent, onSave, taskId }: ContentEditorP
       <EditorToolbar onCommand={handleCommand} activeFormats={activeFormats} />
       <div
         ref={editorRef}
-        className={`content-editor ${isReadOnly ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+        className={`content-editor ${isReadOnly ? 'opacity-60 cursor-not-allowed bg-flow-surface' : ''}`}
         contentEditable={!isReadOnly}
         role="textbox"
         aria-multiline

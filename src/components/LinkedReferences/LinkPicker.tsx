@@ -156,7 +156,7 @@ export function LinkPicker({ sourceTaskId, onClose }: LinkPickerProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-lg shadow-xl border border-flow-columnBorder w-[400px] max-h-[480px] flex flex-col">
+      <div className="bg-flow-background rounded-lg shadow-xl border border-flow-columnBorder w-[400px] max-h-[480px] flex flex-col">
         <div className="px-4 pt-4 pb-2">
           <h3 className="text-sm font-flow-semibold text-flow-textPrimary mb-2">Link to Task</h3>
           <input
@@ -204,7 +204,7 @@ export function LinkPicker({ sourceTaskId, onClose }: LinkPickerProps) {
               <button
                 key={task.id}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${
-                  idx === highlightedIndex ? 'bg-neutral-100' : 'hover:bg-neutral-50'
+                  idx === highlightedIndex ? 'bg-flow-surface' : 'hover:bg-flow-hover'
                 }`}
                 onClick={() => handleCreateLink(task)}
               >

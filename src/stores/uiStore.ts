@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { getMobileMode } from '../lib/mobileDetection'
 import type { Breakpoint } from '../lib/theme'
+import type { CreationContext } from '../types/database'
 import {
   SIDEBAR_WIDTH_DEFAULT,
   SIDEBAR_WIDTH_MIN,
@@ -95,6 +96,10 @@ interface UIState {
   dragGhostPosition: { x: number; y: number } | null
   completionTimeouts: Record<string, ReturnType<typeof setTimeout>>
   mobileMenuOpen: boolean
+  // Creation modal (unified creation flow)
+  creationModalOpen: boolean
+  creationContext: CreationContext | null
+  lastCreatedItemId: string | null
   setMobileMode: (mode: boolean) => void
   setBreakpoint: (b: Breakpoint) => void
   setSidebarOpen: (open: boolean) => void
@@ -118,6 +123,10 @@ interface UIState {
   setCompletionTimeout: (taskId: string, timeoutId: ReturnType<typeof setTimeout>) => void
   clearCompletionTimeout: (taskId: string) => void
   cancelCreation: () => void
+  // Creation modal actions
+  openCreationModal: (context: CreationContext) => void
+  closeCreationModal: () => void
+  setLastCreatedItemId: (id: string | null) => void
 }
 
 const layoutPrefs =
@@ -133,6 +142,9 @@ export const useUIStore = create<UIState>((set, get) => ({
   defaultView: 'main_db',
   creationState: null,
   creationTimeoutId: null,
+  creationModalOpen: false,
+  creationContext: null,
+  lastCreatedItemId: null,
   inlineEditState: null,
   editPanelState: null,
   draggingItemId: null,
@@ -219,4 +231,11 @@ export const useUIStore = create<UIState>((set, get) => ({
       creationTimeoutId: null,
     })
   },
+  openCreationModal: (context) => {
+    set({ creationModalOpen: true, creationContext: context })
+  },
+  closeCreationModal: () => {
+    set({ creationModalOpen: false, creationContext: null })
+  },
+  setLastCreatedItemId: (id) => set({ lastCreatedItemId: id }),
 }))

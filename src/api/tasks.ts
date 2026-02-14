@@ -74,7 +74,7 @@ export async function insertTask(
 
 export async function updateTask(
   id: string,
-  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'status' | 'archived_at' | 'archive_reason' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'actual_duration_minutes' | 'checklist_items'>>
+  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'status' | 'url' | 'archived_at' | 'archive_reason' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'actual_duration_minutes' | 'checklist_items'>>
 ): Promise<Task> {
   const { data, error } = await supabase
     .from('tasks')
@@ -89,7 +89,7 @@ export async function updateTask(
 /** Update task with conflict check. Use for normal saves. */
 export async function updateTaskWithConflictCheck(
   taskId: string,
-  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'status' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'checklist_items'>>,
+  updates: Partial<Pick<Task, 'title' | 'priority' | 'start_date' | 'due_date' | 'background_color' | 'category' | 'tags' | 'description' | 'is_completed' | 'completed_at' | 'status' | 'url' | 'position' | 'directory_id' | 'recurrence_pattern' | 'recurrence_parent_id' | 'recurrence_series_id' | 'is_recurrence_template' | 'estimated_duration_minutes' | 'checklist_items'>>,
   currentTask: Task
 ): Promise<SaveTaskResult> {
   const version = currentTask.version ?? 1

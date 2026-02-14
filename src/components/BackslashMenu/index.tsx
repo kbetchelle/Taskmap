@@ -159,7 +159,7 @@ export function BackslashMenu({
   const statusSubMenu = (
     <div className="px-1.5 pb-1.5">
       <button
-        className="w-full flex items-center gap-2 px-3 py-1 text-flow-meta text-flow-textSecondary hover:bg-neutral-100 rounded mb-1"
+        className="w-full flex items-center gap-2 px-3 py-1 text-flow-meta text-flow-textSecondary hover:bg-flow-hover rounded mb-1"
         onClick={() => { setSubMenuParent(null); setHighlightedIndex(0) }}
       >
         &#x2190; Back
@@ -168,7 +168,7 @@ export function BackslashMenu({
         <button
           key={status}
           className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-flow-task rounded transition-colors ${
-            idx === highlightedIndex ? 'bg-neutral-100' : 'hover:bg-neutral-50'
+            idx === highlightedIndex ? 'bg-flow-surface' : 'hover:bg-flow-hover'
           }`}
           onClick={() => handleStatusSelect(status)}
         >

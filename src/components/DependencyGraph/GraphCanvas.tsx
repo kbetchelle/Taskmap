@@ -1,6 +1,13 @@
-import { useCallback, useState, useRef, useMemo } from 'react'
+import { useCallback, useState, useRef, useMemo, useEffect } from 'react'
 import type { GraphNode, GraphEdge } from './useGraphLayout'
 import { getStatusColor } from '../../lib/statusUtils'
+
+/** Read a CSS variable value from :root, with fallback. */
+function getCSSVar(name: string, fallback: string): string {
+  if (typeof document === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name)?.trim()
+  return v || fallback
+}
 
 interface GraphCanvasProps {
   nodes: GraphNode[]
@@ -32,6 +39,27 @@ export function GraphCanvas({
     () => new Map(nodes.map((n) => [n.id, n])),
     [nodes]
   )
+
+  // Theme-aware colors (re-read when theme changes via data-theme attribute)
+  const [themeColors, setThemeColors] = useState(() => ({
+    nodeFill: getCSSVar('--flow-card-bg', '#FFFFFF'),
+    textFill: getCSSVar('--flow-text-primary', '#000'),
+    edgeDep: getCSSVar('--flow-text-secondary', '#666'),
+    edgeRef: getCSSVar('--flow-text-disabled', '#ccc'),
+  }))
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setThemeColors({
+        nodeFill: getCSSVar('--flow-card-bg', '#FFFFFF'),
+        textFill: getCSSVar('--flow-text-primary', '#000'),
+        edgeDep: getCSSVar('--flow-text-secondary', '#666'),
+        edgeRef: getCSSVar('--flow-text-disabled', '#ccc'),
+      })
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => observer.disconnect()
+  }, [])
 
   // Zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -89,7 +117,7 @@ export function GraphCanvas({
           markerHeight={ARROW_SIZE}
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 Z" fill="#666" />
+          <path d="M 0 0 L 10 5 L 0 10 Z" fill={themeColors.edgeDep} />
         </marker>
         <marker
           id="arrow-reference"
@@ -100,7 +128,7 @@ export function GraphCanvas({
           markerHeight={ARROW_SIZE}
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 Z" fill="#aaa" />
+          <path d="M 0 0 L 10 5 L 0 10 Z" fill={themeColors.edgeRef} />
         </marker>
       </defs>
 
@@ -126,7 +154,7 @@ export function GraphCanvas({
               key={`edge-${idx}`}
               d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
               fill="none"
-              stroke={isDependency ? '#666' : '#ccc'}
+              stroke={isDependency ? themeColors.edgeDep : themeColors.edgeRef}
               strokeWidth={isDependency ? 2 : 1.5}
               strokeDasharray={isDependency ? 'none' : '6 3'}
               markerEnd={`url(#arrow-${edge.type})`}
@@ -152,7 +180,7 @@ export function GraphCanvas({
                 width={NODE_WIDTH}
                 height={NODE_HEIGHT}
                 rx={8}
-                fill="white"
+                fill={themeColors.nodeFill}
                 stroke={statusColor}
                 strokeWidth={2}
               />
@@ -169,7 +197,7 @@ export function GraphCanvas({
                 y={NODE_HEIGHT / 2 + 1}
                 dominantBaseline="middle"
                 className="text-flow-task"
-                fill="#000"
+                fill={themeColors.textFill}
                 fontSize={13}
               >
                 {node.task.title.length > 18

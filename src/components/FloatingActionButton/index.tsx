@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Plus, X } from 'lucide-react'
 import { FABMenuItem } from './FABMenuItem'
 import { useAppStore } from '../../stores/appStore'
+import { useUIStore } from '../../stores/uiStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import {
@@ -63,18 +64,31 @@ export function FloatingActionButton() {
     setIsOpen((prev) => !prev)
   }, [])
 
+  const openCreationModal = useUIStore((s) => s.openCreationModal)
+
   const handleSelect = useCallback((commandId: string) => {
     setIsOpen(false)
-    // Trigger via the backslash menu's execute flow
+    const currentDirectoryId = navigationPath.length > 0
+      ? navigationPath[navigationPath.length - 1]
+      : null
+
+    // Handle creation commands via the unified creation modal
+    if (commandId === 'new-task') {
+      openCreationModal({ parentDirectoryId: currentDirectoryId, type: 'task' })
+      return
+    }
+    if (commandId === 'new-directory') {
+      openCreationModal({ parentDirectoryId: currentDirectoryId, type: 'directory' })
+      return
+    }
+
+    // Other commands — dispatch through backslash menu
     useAppStore.getState().setBackslashMenuOpen(true)
-    // We push the command to be executed via the existing command flow
-    // For now, dispatch through the app's action system
     requestAnimationFrame(() => {
       useAppStore.getState().closeBackslashMenu()
     })
-    // TODO: wire to actual command execution when action registry supports it
     void commandId
-  }, [])
+  }, [navigationPath, openCreationModal])
 
   // Click outside to dismiss
   useEffect(() => {

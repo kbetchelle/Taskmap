@@ -71,6 +71,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
   const ref = mergeRefs(internalRef, forwardedRef)
   const isGrabbed = useAppStore((s) => s.grabModeItemId === id)
   const dragState = useUIStore((s) => s.dragState)
+  const isCreationHighlight = useUIStore((s) => s.lastCreatedItemId === id)
 
   // New pointer-events drag system
   const { handlePointerDown, isDragging, isAnyDragActive } = useDrag({
@@ -119,6 +120,7 @@ export const ListItem = forwardRef<HTMLDivElement, ListItemProps>(function ListI
         ${isBeingDragged ? 'opacity-30' : ''}
         ${isGrabbed ? 'ring-2 ring-flow-focus shadow-md animate-pulse' : ''}
         ${isAnyDragActive ? 'transition-transform duration-200 ease-in-out' : ''}
+        ${isCreationHighlight ? 'animate-creation-highlight' : ''}
         ${extraClass}
       `}
       onClick={(e) => {

@@ -145,7 +145,7 @@ export function OnboardingFlow() {
     >
       <div className="w-full max-w-[500px] flex flex-col gap-8">
         <div className="flex flex-col gap-2">
-          <div className="h-1 bg-neutral-200 rounded-full overflow-hidden">
+          <div className="h-1 bg-flow-skeleton rounded-full overflow-hidden">
             <div
               className="h-full bg-[#007AFF] transition-all duration-300"
               style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
@@ -250,10 +250,10 @@ export function OnboardingFlow() {
               <div className="flex flex-col items-center gap-4 text-center">
                 <span className="text-5xl" aria-hidden>✨</span>
                 <p className="text-base text-flow-textSecondary leading-relaxed m-0">
-                  Press <kbd className="px-1.5 py-0.5 bg-neutral-100 border border-flow-columnBorder rounded text-sm font-mono">⌘/</kbd> anytime to see all keyboard shortcuts.
+                  Press <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">⌘/</kbd> anytime to see all keyboard shortcuts.
                 </p>
                 <p className="text-base text-flow-textSecondary leading-relaxed m-0">
-                  Press <kbd className="px-1.5 py-0.5 bg-neutral-100 border border-flow-columnBorder rounded text-sm font-mono">⌘,</kbd> to open settings.
+                  Press <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">⌘,</kbd> to open settings.
                 </p>
               </div>
             )}

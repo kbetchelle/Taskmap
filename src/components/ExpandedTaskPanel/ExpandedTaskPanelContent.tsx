@@ -278,12 +278,12 @@ function AttachmentList({
   return (
     <div className="flex flex-col gap-3">
       {attachments.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 p-5 bg-neutral-50 border border-dashed border-flow-columnBorder rounded-lg text-center">
+        <div className="flex flex-col items-center gap-3 p-5 bg-flow-surface border border-dashed border-flow-columnBorder rounded-lg text-center">
           <p className="m-0 text-flow-textSecondary text-sm">No attachments</p>
           <button
             type="button"
             onClick={onAddAttachment}
-            className="text-sm font-flow-medium border border-flow-columnBorder rounded-md px-3 py-2 bg-white hover:bg-neutral-50 transition-colors"
+            className="text-sm font-flow-medium border border-flow-columnBorder rounded-md px-3 py-2 bg-flow-background hover:bg-flow-hover transition-colors"
           >
             Add Attachment (Cmd+Shift+F)
           </button>
@@ -294,7 +294,7 @@ function AttachmentList({
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="flex items-center gap-3 p-2.5 bg-neutral-50 rounded-md hover:bg-neutral-100 transition-colors"
+                className="flex items-center gap-3 p-2.5 bg-flow-surface rounded-md hover:bg-flow-hover transition-colors"
               >
                 <div className="text-2xl flex-shrink-0">{getFileIcon(att.file_type)}</div>
                 <div className="flex-1 min-w-0">
@@ -335,7 +335,7 @@ function AttachmentList({
             <button
               type="button"
               onClick={onAddAttachment}
-              className="text-xs font-flow-medium text-[#007AFF] border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-neutral-50 transition-colors"
+              className="text-xs font-flow-medium text-flow-focus border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-flow-hover transition-colors"
             >
               + Add More
             </button>
@@ -343,7 +343,7 @@ function AttachmentList({
               <button
                 type="button"
                 onClick={onOpenAll}
-                className="text-xs font-flow-medium text-flow-textSecondary border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-neutral-50"
+                className="text-xs font-flow-medium text-flow-textSecondary border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-flow-hover"
               >
                 Open all (Cmd+Shift+O)
               </button>
@@ -561,7 +561,7 @@ export function ExpandedTaskPanelContent({
                 {task.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-2.5 py-1 bg-neutral-100 text-flow-textPrimary text-xs font-medium rounded-full"
+                    className="px-2.5 py-1 bg-flow-surface text-flow-textPrimary text-xs font-medium rounded-full"
                   >
                     {tag}
                   </span>
@@ -611,7 +611,7 @@ export function ExpandedTaskPanelContent({
             type="button"
             onClick={isReadOnly ? undefined : onEdit}
             disabled={isReadOnly}
-            className={`flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-white text-flow-textPrimary transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2 ${isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-50'}`}
+            className={`flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-flow-background text-flow-textPrimary transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2 ${isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-flow-hover'}`}
             data-write-action=""
           >
             {mobile ? 'Edit' : 'Edit (Cmd+Shift+E)'}
@@ -619,7 +619,7 @@ export function ExpandedTaskPanelContent({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-white text-flow-textPrimary hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2"
+            className="flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-flow-background text-flow-textPrimary hover:bg-flow-hover transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2"
           >
             {mobile ? 'Close' : 'Close (Esc)'}
           </button>
