@@ -75,7 +75,7 @@ export function handleKeyDown(
   event: KeyboardEvent,
   options: DispatcherOptions
 ): void {
-  // Skip if target is an input/textarea with data-keyboard-ignore
+  // Skip shortcuts if target is an input/textarea with data-keyboard-ignore
   if (
     event.target instanceof HTMLInputElement ||
     event.target instanceof HTMLTextAreaElement

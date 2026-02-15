@@ -79,6 +79,7 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              data-keyboard-ignore
               required
             />
           </div>
@@ -93,6 +94,7 @@ export function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 pr-10 text-sm"
+                data-keyboard-ignore
                 required
               />
               <button
