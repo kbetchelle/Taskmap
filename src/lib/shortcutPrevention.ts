@@ -54,6 +54,15 @@ export function shouldPreventBrowserShortcut(
 
 export function installShortcutPrevention(): void {
   const handler = (e: KeyboardEvent) => {
+    // Always skip prevention for input/textarea - let users type freely
+    // The shortcut dispatcher will handle these separately with its own logic
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement
+    ) {
+      return
+    }
+
     const context = getContext()
     if (shouldPreventBrowserShortcut(e, context)) {
       e.preventDefault()
