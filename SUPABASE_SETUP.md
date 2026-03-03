@@ -79,3 +79,37 @@ To re-enable email confirmations:
 1. Go back to **Authentication** → **Settings** in Supabase Dashboard
 2. Toggle **Enable email confirmations** back **ON**
 3. The app will automatically show the "Check your email" message again
+
+---
+
+## Pushing migrations to remote (`supabase db push`)
+
+If you see:
+
+```text
+unexpected login role status 403: {"message":"Forbidden resource"}
+Connect to your database by setting the env var: SUPABASE_DB_PASSWORD
+```
+
+the CLI cannot connect to your **remote** project's database without the database password.
+
+**Fix:**
+
+1. Open the [Supabase Dashboard](https://app.supabase.com) → your project → **Project Settings** (gear) → **Database**.
+2. Copy the **Database password** (or reset it if you don't have it).
+3. Run push with the password set:
+
+   ```bash
+   export SUPABASE_DB_PASSWORD='your-database-password'
+   supabase db push
+   ```
+
+   Or in one line (avoid committing this or sharing the terminal history):
+
+   ```bash
+   SUPABASE_DB_PASSWORD='your-database-password' supabase db push
+   ```
+
+4. Ensure the project is linked: `supabase link --project-ref <PROJECT_REF>` (Project Ref is under **Project Settings** → **General**). You can pass the password when linking: `supabase link --project-ref <REF> -p <DB_PASSWORD>`.
+
+If 403 persists, re-login with a new access token (**Account** → **Access Tokens**) and run `supabase login` again; then retry with `SUPABASE_DB_PASSWORD` set.

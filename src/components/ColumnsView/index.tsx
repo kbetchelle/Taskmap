@@ -568,7 +568,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const saveDirectory = useCallback(
     async (itemId: string, name: string) => {
       if (!creationState || !userId) return
-      const parentId = creationState.columnIndex === 0 ? null : (columnIds[creationState.columnIndex - 1] ?? null)
+      const parentId = columnIds[creationState.columnIndex] ?? null
       const depthLevel =
         parentId == null ? 0 : (directories.find((d) => d.id === parentId)?.depth_level ?? 0) + 1
       const dir = {
