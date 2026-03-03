@@ -11,7 +11,25 @@ import type { KeyboardContext, FocusHistoryItem } from '../types/keyboard'
 import { DEFAULT_FILTER_STATE } from '../types/state'
 
 const RECENT_ACTIONS_KEY = 'taskmap-recent-actions'
+const ROOT_DISPLAY_NAME_KEY = 'taskmap-root-display-name'
 const MAX_RECENT_ACTIONS = 10
+
+function loadRootDisplayName(): string {
+  try {
+    const v = localStorage.getItem(ROOT_DISPLAY_NAME_KEY)
+    return typeof v === 'string' && v.trim() !== '' ? v.trim() : 'Home'
+  } catch {
+    return 'Home'
+  }
+}
+
+function persistRootDisplayName(name: string) {
+  try {
+    localStorage.setItem(ROOT_DISPLAY_NAME_KEY, name)
+  } catch {
+    // ignore
+  }
+}
 
 function loadRecentActions(): { commandId: string; timestamp: number }[] {
   try {
@@ -70,8 +88,10 @@ interface AppStoreState {
   grabModeItemId: string | null
   grabModeOriginalPosition: { parentId: string; position: number } | null
   dependencyGraphOpen: boolean
+  rootDisplayName: string
 
   setCurrentView: (view: CurrentView) => void
+  setRootDisplayName: (name: string) => void
   setCommandPaletteCommands: (commands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>) => void
   setPreviousView: (view: CurrentView | null) => void
   setOnboardingOpen: (open: boolean) => void
@@ -106,6 +126,7 @@ interface AppStoreState {
   resetFilters: () => void
   setNavigationPath: (path: string[]) => void
   pushNavigation: (directoryId: string) => void
+  replaceNavigationFrom: (columnIndex: number, directoryId: string) => void
   popNavigation: () => void
   setExpandedTaskId: (id: string | null) => void
   pushUndo: (item: ActionHistoryItem) => void
@@ -152,8 +173,14 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   grabModeItemId: null,
   grabModeOriginalPosition: null,
   dependencyGraphOpen: false,
+  rootDisplayName: loadRootDisplayName(),
 
   setCurrentView: (view) => set({ currentView: view }),
+  setRootDisplayName: (name) => {
+    const value = typeof name === 'string' && name.trim() !== '' ? name.trim() : 'Home'
+    persistRootDisplayName(value)
+    set({ rootDisplayName: value })
+  },
   setCommandPaletteCommands: (commands) => set({ commandPaletteCommands: commands }),
   setPreviousView: (view) => set({ previousView: view }),
   setOnboardingOpen: (open) => set({ onboardingOpen: open }),
@@ -217,7 +244,15 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     set({ activeFilters: DEFAULT_FILTER_STATE, searchResultTaskIds: null }),
   setNavigationPath: (path) => set({ navigationPath: path }),
   pushNavigation: (id) =>
-    set((s) => ({ navigationPath: [...s.navigationPath, id] })),
+    set((s) => {
+      const next = s.navigationPath.filter((x) => x !== id)
+      next.push(id)
+      return { navigationPath: next }
+    }),
+  replaceNavigationFrom: (columnIndex, directoryId) =>
+    set((s) => ({
+      navigationPath: [...s.navigationPath.slice(0, columnIndex), directoryId],
+    })),
   popNavigation: () =>
     set((s) => ({
       navigationPath: s.navigationPath.length > 1 ? s.navigationPath.slice(0, -1) : [],

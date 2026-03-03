@@ -1,4 +1,4 @@
-import { useCallback, useRef, useLayoutEffect, useMemo } from 'react'
+import { useCallback, useRef, useLayoutEffect, useMemo, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Task, Directory, TaskStatus } from '../../types'
 import { useDirectoryContents } from '../../hooks/useDirectoryContents'
@@ -75,6 +75,10 @@ interface ColumnProps {
   linkCountByTaskId?: Record<string, number>
   blockedTaskIds?: Set<string>
   blockedByTitlesMap?: Record<string, string[]>
+  /** For column 0 only: editable root header label (e.g. "Home") */
+  rootDisplayName?: string
+  /** For column 0 only: called when user saves the root display name */
+  onRootDisplayNameSave?: (name: string) => void
 }
 
 export function Column({
@@ -112,9 +116,12 @@ export function Column({
   linkCountByTaskId = {},
   blockedTaskIds,
   blockedByTitlesMap = {},
+  rootDisplayName,
+  onRootDisplayNameSave,
 }: ColumnProps) {
-  const headerLabel = directoryId == null ? 'Home' : directoryName ?? ''
+  const headerLabel = directoryId == null ? (rootDisplayName ?? 'Home') : (directoryName ?? '')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [isEditingRootName, setIsEditingRootName] = useState(false)
   const ROW_ESTIMATE = 40
   const VIRTUAL_THRESHOLD = 80
 
@@ -309,6 +316,38 @@ export function Column({
       role="region"
       aria-label={`Column ${columnIndex + 1}: ${headerLabel}`}
     >
+      {/* Column header: editable for col 0, read-only for col >= 1 */}
+      <div className="flex-shrink-0 border-b border-flow-columnBorder px-3 py-2 bg-flow-background">
+        {columnIndex === 0 && rootDisplayName != null && onRootDisplayNameSave != null ? (
+          isEditingRootName ? (
+            <DirectoryInlineInput
+              itemId="root-display-name"
+              initialValue={rootDisplayName}
+              onSave={(name) => {
+                onRootDisplayNameSave(name)
+                setIsEditingRootName(false)
+              }}
+              onCancel={() => setIsEditingRootName(false)}
+              minLength={1}
+            />
+          ) : (
+            <button
+              type="button"
+              className="w-full text-left text-flow-dir font-flow-semibold text-flow-textPrimary truncate py-0.5 px-0 rounded hover:bg-flow-columnBorder/30 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsEditingRootName(true)
+              }}
+            >
+              {rootDisplayName || 'Home'}
+            </button>
+          )
+        ) : (
+          <span className="block text-flow-dir font-flow-semibold text-flow-textPrimary truncate py-0.5">
+            {headerLabel || ' '}
+          </span>
+        )}
+      </div>
       <div
         ref={mergedScrollRef}
         className={`column-content flex-1 overflow-y-auto overflow-x-hidden py-2 relative ${isOver ? 'bg-flow-focus/5' : ''}`}
@@ -330,9 +369,11 @@ export function Column({
                 e.stopPropagation()
                 onColumnFocus()
               }}
-            />
+            >
+              <span className="text-flow-textDisabled">Add task or directory</span>
+            </div>
           ) : (
-            <p className="text-flow-meta text-flow-textSecondary px-4 py-2">No items</p>
+            <p className="text-flow-meta text-flow-textSecondary px-4 py-3">Add task or directory</p>
           )
         ) : !hasRows && creationState?.mode === 'type-select' && creationState.columnIndex === columnIndex && creationState.itemId ? (
           <TypeSelectorRow itemId={creationState.itemId} />

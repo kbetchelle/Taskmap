@@ -4,6 +4,7 @@ import { useDirectoryStore } from '../../stores/directoryStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useNetworkStore } from '../../stores/networkStore'
+import { getPathToDirectory } from '../../lib/treeUtils'
 
 function mainDbActiveCount(
   directories: { start_date: string | null }[],
@@ -36,6 +37,8 @@ function formatRelativeTime(ts: number): string {
 export function Footer() {
   const isMobile = useUIStore((s) => s.mobileMode)
   const navigationPath = useAppStore((s) => s.navigationPath)
+  const focusedItemId = useAppStore((s) => s.focusedItemId)
+  const rootDisplayName = useAppStore((s) => s.rootDisplayName)
   const isOnline = useNetworkStore((s) => s.isOnline)
   const lastSyncedAt = useNetworkStore((s) => s.lastSyncedAt)
   const currentView = useAppStore((s) => s.currentView)
@@ -47,13 +50,24 @@ export function Footer() {
   const tasks = useTaskStore((s) => s.tasks)
 
   const breadcrumbNames = useMemo(() => {
-    const names: string[] = ['Home']
-    navigationPath.forEach((id) => {
+    const rootName = rootDisplayName?.trim() || 'Home'
+    const pathIds: string[] =
+      focusedItemId != null
+        ? (() => {
+            const task = tasks.find((t) => t.id === focusedItemId)
+            if (task) return getPathToDirectory(task.directory_id, directories)
+            const dir = directories.find((d) => d.id === focusedItemId)
+            if (dir) return getPathToDirectory(focusedItemId, directories)
+            return navigationPath
+          })()
+        : navigationPath
+    const names: string[] = [rootName]
+    pathIds.forEach((id) => {
       const dir = directories.find((d) => d.id === id)
       if (dir) names.push(dir.name)
     })
     return names
-  }, [navigationPath, directories])
+  }, [navigationPath, focusedItemId, directories, tasks, rootDisplayName])
 
   const activeFilterCount = useMemo(() => {
     let n = 0

@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, useCallback, useState } from 'react'
+import { useRef, useMemo, useCallback, useState } from 'react'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useAppStore } from '../../stores/appStore'
@@ -97,8 +97,10 @@ export function MobileColumnsView({
   const removeTask = useTaskStore((s) => s.removeTask)
   const patchTaskActualDuration = useTaskStore((s) => s.patchTaskActualDuration)
   const selectedItemIds = useAppStore((s) => s.selectedItems)
-  const pushNavigation = useAppStore((s) => s.pushNavigation)
+  const replaceNavigationFrom = useAppStore((s) => s.replaceNavigationFrom)
   const popNavigation = useAppStore((s) => s.popNavigation)
+  const rootDisplayName = useAppStore((s) => s.rootDisplayName)
+  const setRootDisplayName = useAppStore((s) => s.setRootDisplayName)
   const toggleSelectedItem = useAppStore((s) => s.toggleSelectedItem)
   const setSelectedItems = useAppStore((s) => s.setSelectedItems)
   const clearSelection = useAppStore((s) => s.clearSelection)
@@ -125,22 +127,18 @@ export function MobileColumnsView({
   const cutItemIds = useAppStore((s) => s.cutItemIds)
   const setCutItemIds = useAppStore((s) => s.setCutItemIds)
 
-  const [columnStack, setColumnStack] = useState<string[]>(() => [...navigationPath])
   const [deleteConfirmItems, setDeleteConfirmItems] = useState<(Task | Directory)[] | null>(null)
   const addAttachmentTriggerRef = useRef<(() => void) | null>(null)
   const openAllAttachmentsTriggerRef = useRef<(() => void) | null>(null)
 
-  useEffect(() => {
-    setColumnStack([...navigationPath])
-  }, [navigationPath.join(',')])
-
+  const columnStack = navigationPath
   const currentDirectoryId = columnStack.length > 0 ? columnStack[columnStack.length - 1] : null
   const columnIndex = columnStack.length
   const columnIds = [null, ...columnStack] as (string | null)[]
 
-  const getItemsForColumn = useCallback(
-    (idx: number): (Task | Directory)[] => {
-      const parentId = idx === 0 ? null : columnStack[idx - 1]
+  /** Returns items for a given parent (no dependency on navigationPath). Use after replaceNavigationFrom to avoid stale path. */
+  const getItemsForParent = useCallback(
+    (parentId: string | null): (Task | Directory)[] => {
       let dirs = directories.filter((d) => d.parent_id === parentId)
       const taskFilter = parentId == null ? () => false : (t: Task) => t.directory_id === parentId
       let taskList = tasks.filter(taskFilter)
@@ -180,25 +178,22 @@ export function MobileColumnsView({
         combined.sort((a, b) => a.position - b.position)
       return combined
     },
-    [directories, tasks, columnStack, viewMode, activeFilters, searchResultTaskIds]
+    [directories, tasks, viewMode, activeFilters, searchResultTaskIds]
+  )
+
+  const getItemsForColumn = useCallback(
+    (idx: number): (Task | Directory)[] => {
+      const parentId = idx === 0 ? null : columnStack[idx - 1]
+      return getItemsForParent(parentId)
+    },
+    [columnStack, getItemsForParent]
   )
 
   const CREATION_TIMEOUT_MS = 10_000
   const setTasks = useTaskStore((s) => s.setTasks)
 
-  const navigateForward = useCallback(
-    (directoryId: string) => {
-      setColumnStack((prev) => [...prev, directoryId])
-      pushNavigation(directoryId)
-      const items = getItemsForColumn(columnIndex + 1)
-      setFocusedItem(items.length > 0 ? items[0].id : null)
-    },
-    [pushNavigation, getItemsForColumn, columnIndex, setFocusedItem]
-  )
-
   const navigateBack = useCallback(() => {
     if (columnStack.length === 0) return
-    setColumnStack((prev) => prev.slice(0, -1))
     popNavigation()
     const prevItems = getItemsForColumn(columnIndex - 1)
     setFocusedItem(prevItems.length > 0 ? prevItems[0].id : null)
@@ -211,9 +206,11 @@ export function MobileColumnsView({
         pushKeyboardContext('editing')
         return
       }
-      navigateForward(item.id)
+      replaceNavigationFrom(columnIndex, item.id)
+      const items = getItemsForParent(item.id)
+      setFocusedItem(items.length > 0 ? items[0].id : null)
     },
-    [setExpandedTaskId, pushKeyboardContext, navigateForward]
+    [setExpandedTaskId, pushKeyboardContext, replaceNavigationFrom, columnIndex, getItemsForParent, setFocusedItem]
   )
 
   const handleItemSelect = useCallback(
@@ -684,7 +681,7 @@ export function MobileColumnsView({
 
   const headerLabel =
     currentDirectoryId == null
-      ? 'Home'
+      ? (rootDisplayName?.trim() || 'Home')
       : directories.find((d) => d.id === currentDirectoryId)?.name ?? ''
 
   return (
@@ -707,7 +704,9 @@ export function MobileColumnsView({
         <Column
           columnIndex={columnIndex}
           directoryId={currentDirectoryId}
-          directoryName={headerLabel === 'Home' ? null : headerLabel}
+          directoryName={currentDirectoryId == null ? null : headerLabel}
+          rootDisplayName={columnIndex === 0 ? rootDisplayName : undefined}
+          onRootDisplayNameSave={columnIndex === 0 ? setRootDisplayName : undefined}
           items={getItemsForColumn(columnIndex)}
           usePagination={
             !!currentDirectoryId &&

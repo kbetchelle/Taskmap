@@ -114,8 +114,10 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const removeTask = useTaskStore((s) => s.removeTask)
   const patchTaskActualDuration = useTaskStore((s) => s.patchTaskActualDuration)
   const selectedItemIds = useAppStore((s) => s.selectedItems)
-  const pushNavigation = useAppStore((s) => s.pushNavigation)
+  const replaceNavigationFrom = useAppStore((s) => s.replaceNavigationFrom)
   const popNavigation = useAppStore((s) => s.popNavigation)
+  const rootDisplayName = useAppStore((s) => s.rootDisplayName)
+  const setRootDisplayName = useAppStore((s) => s.setRootDisplayName)
   const toggleSelectedItem = useAppStore((s) => s.toggleSelectedItem)
   const setSelectedItems = useAppStore((s) => s.setSelectedItems)
   const clearSelection = useAppStore((s) => s.clearSelection)
@@ -166,9 +168,9 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
 
   const searchResultTaskIds = useAppStore((s) => s.searchResultTaskIds)
 
-  const getItemsForColumn = useCallback(
-    (columnIndex: number): (Task | Directory)[] => {
-      const parentId = columnIndex === 0 ? null : navigationPath[columnIndex - 1]
+  /** Returns items for a given parent (no dependency on navigationPath). Use after replaceNavigationFrom to avoid stale path. */
+  const getItemsForParent = useCallback(
+    (parentId: string | null): (Task | Directory)[] => {
       let dirs = directories.filter((d) => d.parent_id === parentId)
       const taskFilter = parentId == null ? () => false : (t: Task) => t.directory_id === parentId
       let taskList = tasks.filter(taskFilter)
@@ -208,14 +210,15 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
         combined.sort((a, b) => a.position - b.position)
       return combined
     },
-    [
-      directories,
-      tasks,
-      navigationPath,
-      viewMode,
-      activeFilters,
-      searchResultTaskIds,
-    ]
+    [directories, tasks, viewMode, activeFilters, searchResultTaskIds]
+  )
+
+  const getItemsForColumn = useCallback(
+    (columnIndex: number): (Task | Directory)[] => {
+      const parentId = columnIndex === 0 ? null : navigationPath[columnIndex - 1]
+      return getItemsForParent(parentId)
+    },
+    [navigationPath, getItemsForParent]
   )
 
   const scrollToColumn = useCallback(
@@ -324,10 +327,10 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
       return
     }
     addToFocusHistory(focusedColumnIndex, item.id)
-    pushNavigation(item.id)
-    const newCol = columnIds.length
+    replaceNavigationFrom(focusedColumnIndex, item.id)
+    const newCol = focusedColumnIndex + 1
     setFocusedColumnIndex(newCol)
-    const newItems = getItemsForColumn(newCol)
+    const newItems = getItemsForParent(item.id)
     setFocusedItem(newItems.length > 0 ? newItems[0].id : getEmptySlotId(newCol))
     setTimeout(() => scrollToColumn(newCol), 50)
 
@@ -351,10 +354,9 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   }, [
     focusedColumnIndex,
     focusedItemId,
-    columnIds.length,
-    getItemsForColumn,
+    getItemsForParent,
     addToFocusHistory,
-    pushNavigation,
+    replaceNavigationFrom,
     setFocusedColumnIndex,
     setFocusedItem,
     setExpandedTaskId,
@@ -1650,10 +1652,10 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
       return
     }
     addToFocusHistory(focusedColumnIndex, item.id)
-    pushNavigation(item.id)
-    const newCol = columnIds.length
+    replaceNavigationFrom(focusedColumnIndex, item.id)
+    const newCol = focusedColumnIndex + 1
     setFocusedColumnIndex(newCol)
-    const newItems = getItemsForColumn(newCol)
+    const newItems = getItemsForParent(item.id)
     if (newItems.length > 500 && !warnedDirSize.current) {
       warnedDirSize.current = true
       useFeedbackStore.getState().showInfo(
@@ -1921,6 +1923,8 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
                   ? directories.find((d) => d.id === directoryId)?.name ?? ''
                   : null
               }
+              rootDisplayName={columnIndex === 0 ? rootDisplayName : undefined}
+              onRootDisplayNameSave={columnIndex === 0 ? setRootDisplayName : undefined}
               items={getItemsForColumn(columnIndex)}
               usePagination={
                 !!directoryId &&

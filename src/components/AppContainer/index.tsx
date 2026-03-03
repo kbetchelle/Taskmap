@@ -49,7 +49,7 @@ export function AppContainer({ children }: AppContainerProps) {
   useTheme()
   useMobileMode()
   const isOffline = useNetworkStore((s) => !s.isOnline)
-  const { breakpoint, isMobile } = useViewport()
+  const { breakpoint, isMobile, showMultiColumnMobile } = useViewport()
   const currentView = useAppStore((s) => s.currentView)
   const previousView = useAppStore((s) => s.previousView)
   const navigationPath = useAppStore((s) => s.navigationPath)
@@ -321,7 +321,7 @@ export function AppContainer({ children }: AppContainerProps) {
             </div>
           ) : currentView === 'archive' ? (
             <ArchiveView />
-          ) : isMobile ? (
+          ) : isMobile && !showMultiColumnMobile ? (
             <MobileColumnsView
               viewMode={currentView === 'upcoming' ? 'upcoming' : 'main_db'}
               navigationPath={navigationPath}
