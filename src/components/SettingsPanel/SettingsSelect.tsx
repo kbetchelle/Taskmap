@@ -18,7 +18,7 @@ export function SettingsSelect({
 }: SettingsSelectProps) {
   return (
     <select
-      className={`w-full px-3 py-2 text-sm text-flow-textPrimary bg-white border border-flow-columnBorder rounded-md cursor-pointer transition-colors hover:border-neutral-300 focus:outline-none focus:border-flow-focus ${className}`}
+      className={`w-full px-3 py-2 text-sm text-flow-textPrimary bg-flow-background border border-flow-columnBorder rounded-md cursor-pointer transition-colors hover:border-flow-columnBorder focus:outline-none focus:border-flow-focus ${className}`}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >

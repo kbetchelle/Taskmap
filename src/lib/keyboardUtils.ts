@@ -69,7 +69,13 @@ export function matchShortcut(e: KeyboardEvent, shortcut: string): boolean {
   const eKey = e.key.toLowerCase()
   if (keyNorm !== eKey) return false
   if (meta !== metaKey) return false
-  if (ctrl !== undefined && ctrl !== e.ctrlKey) return false
+  // On non-Mac, 'mod' maps to Ctrl. If the shortcut uses 'mod' but not an
+  // explicit 'ctrl' token, e.ctrlKey=true is already captured by metaKey above
+  // and should not also be required to be false — skip the redundant check.
+  const hasExplicitCtrl = shortcut.toLowerCase().split('+').includes('ctrl')
+  if (IS_MAC || !meta || hasExplicitCtrl) {
+    if (ctrl !== undefined && ctrl !== e.ctrlKey) return false
+  }
   if (shift !== undefined && shift !== e.shiftKey) return false
   if (alt !== undefined && alt !== e.altKey) return false
   return true

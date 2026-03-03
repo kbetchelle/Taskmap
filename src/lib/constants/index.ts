@@ -70,63 +70,10 @@ export const DEFAULT_SETTINGS_PAYLOAD = {
   },
   background_color_palette: [...DEFAULT_BACKGROUND_PALETTE],
   skip_starter_structure: false,
+  theme_mode: 'system' as const,
+  accent_color: '#007AFF',
+  creation_mode: 'modal' as const,
 }
 
-// Keyboard shortcuts (for useKeyboard)
-export const SHORTCUTS = {
-  MAIN_VIEW: 'mod+1',
-  UPCOMING_VIEW: 'mod+shift+l',
-  ARCHIVE_VIEW: 'mod+shift+a',
-  COMMAND_PALETTE: 'mod+k',
-  SEARCH_OPEN: 'mod+shift+s',
-  COMPLETED_TOGGLE: 'mod+shift+h',
-  SAVE_VIEW: 'mod+alt+s',
-  NEW_TASK: 'mod+ctrl+n',
-  NEW_DIRECTORY: 'mod+ctrl+shift+n',
-  SETTINGS: 'mod+,',
-  UNDO: 'mod+z',
-  REDO: 'mod+shift+z',
-  // Phase 4: creation, edit, delete, copy/paste/cut
-  OPTION_E: 'alt+e',
-  CMD_SHIFT_E: 'mod+shift+e',
-  CMD_DELETE: 'mod+delete',
-  CMD_C: 'mod+c',
-  CMD_V: 'mod+v',
-  CMD_SHIFT_V: 'mod+shift+v',
-  CMD_X: 'mod+x',
-  CMD_SHIFT_C: 'mod+shift+c',
-  // Phase 2: column scroll and color mode
-  SCROLL_LEFT: 'mod+shift+arrowleft',
-  SCROLL_RIGHT: 'mod+shift+arrowright',
-  SCROLL_HOME: 'home',
-  SCROLL_END: 'end',
-  COLOR_NONE: 'mod+alt+n',
-  COLOR_CATEGORY: 'mod+alt+c',
-  COLOR_PRIORITY: 'mod+alt+p',
-  // Phase 3: navigation
-  ARROW_UP: 'arrowup',
-  ARROW_DOWN: 'arrowdown',
-  ARROW_LEFT: 'arrowleft',
-  ARROW_RIGHT: 'arrowright',
-  ENTER: 'enter',
-  ESCAPE: 'escape',
-  SPACE: ' ',
-  SHIFT_ARROW_UP: 'shift+arrowup',
-  SHIFT_ARROW_DOWN: 'shift+arrowdown',
-  CMD_A: 'mod+a',
-  CMD_ARROW_UP: 'mod+arrowup',
-  CMD_ARROW_DOWN: 'mod+arrowdown',
-  CMD_SLASH: 'mod+/',
-  // Phase 6: expanded task panel
-  CMD_SHIFT_F: 'mod+shift+f',
-  CMD_SHIFT_O: 'mod+shift+o',
-  // Phase 5: saved view slots (Cmd+2 .. Cmd+9)
-  SAVED_VIEW_2: 'mod+2',
-  SAVED_VIEW_3: 'mod+3',
-  SAVED_VIEW_4: 'mod+4',
-  SAVED_VIEW_5: 'mod+5',
-  SAVED_VIEW_6: 'mod+6',
-  SAVED_VIEW_7: 'mod+7',
-  SAVED_VIEW_8: 'mod+8',
-  SAVED_VIEW_9: 'mod+9',
-} as const
+// Keyboard shortcuts have been moved to src/lib/shortcutRegistry.ts (SHORTCUT_BINDINGS)
+// The SHORTCUTS constant has been removed — all bindings are now defined in the unified registry.

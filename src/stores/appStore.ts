@@ -10,6 +10,53 @@ import type {
 import type { KeyboardContext, FocusHistoryItem } from '../types/keyboard'
 import { DEFAULT_FILTER_STATE } from '../types/state'
 
+const RECENT_ACTIONS_KEY = 'taskmap-recent-actions'
+const ROOT_DISPLAY_NAME_KEY = 'taskmap-root-display-name'
+const MAX_RECENT_ACTIONS = 10
+
+function loadRootDisplayName(): string {
+  try {
+    const v = localStorage.getItem(ROOT_DISPLAY_NAME_KEY)
+    return typeof v === 'string' && v.trim() !== '' ? v.trim() : 'Home'
+  } catch {
+    return 'Home'
+  }
+}
+
+function persistRootDisplayName(name: string) {
+  try {
+    localStorage.setItem(ROOT_DISPLAY_NAME_KEY, name)
+  } catch {
+    // ignore
+  }
+}
+
+function loadRecentActions(): { commandId: string; timestamp: number }[] {
+  try {
+    const raw = localStorage.getItem(RECENT_ACTIONS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (item): item is { commandId: string; timestamp: number } =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as Record<string, unknown>).commandId === 'string' &&
+        typeof (item as Record<string, unknown>).timestamp === 'number'
+    )
+  } catch {
+    return []
+  }
+}
+
+function persistRecentActions(actions: { commandId: string; timestamp: number }[]) {
+  try {
+    localStorage.setItem(RECENT_ACTIONS_KEY, JSON.stringify(actions))
+  } catch {
+    // ignore
+  }
+}
+
 interface AppStoreState {
   currentView: CurrentView
   previousView: CurrentView | null
@@ -35,13 +82,23 @@ interface AppStoreState {
   onboardingOpen: boolean
   helpOpen: boolean
   commandPaletteCommands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>
+  backslashMenuOpen: boolean
+  backslashMenuPosition: { top: number; left: number } | null
+  recentActions: { commandId: string; timestamp: number }[]
+  grabModeItemId: string | null
+  grabModeOriginalPosition: { parentId: string; position: number } | null
+  dependencyGraphOpen: boolean
+  rootDisplayName: string
 
   setCurrentView: (view: CurrentView) => void
+  setRootDisplayName: (name: string) => void
   setCommandPaletteCommands: (commands: Array<{ id: string; label: string; category: string; action: () => void; shortcut?: string }>) => void
   setPreviousView: (view: CurrentView | null) => void
   setOnboardingOpen: (open: boolean) => void
   setHelpOpen: (open: boolean) => void
   setShortcutSheetOpen: (open: boolean) => void
+  setBackslashMenuOpen: (open: boolean, position?: { top: number; left: number }) => void
+  closeBackslashMenu: () => void
   setCommandPaletteOpen: (open: boolean) => void
   setSearchBarOpen: (open: boolean) => void
   setSearchResultTaskIds: (ids: string[] | null) => void
@@ -69,6 +126,7 @@ interface AppStoreState {
   resetFilters: () => void
   setNavigationPath: (path: string[]) => void
   pushNavigation: (directoryId: string) => void
+  replaceNavigationFrom: (columnIndex: number, directoryId: string) => void
   popNavigation: () => void
   setExpandedTaskId: (id: string | null) => void
   pushUndo: (item: ActionHistoryItem) => void
@@ -78,6 +136,10 @@ interface AppStoreState {
   setUndoStack: (items: ActionHistoryItem[]) => void
   setUndoCurrentIndex: (index: number) => void
   prependUndoHistory: (items: ActionHistoryItem[]) => void
+  pushRecentAction: (commandId: string) => void
+  setGrabModeItem: (id: string | null, parentId?: string, position?: number) => void
+  setDependencyGraphOpen: (open: boolean) => void
+  toggleDependencyGraph: () => void
 }
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
@@ -105,13 +167,28 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   onboardingOpen: false,
   helpOpen: false,
   commandPaletteCommands: [],
+  backslashMenuOpen: false,
+  backslashMenuPosition: null,
+  recentActions: loadRecentActions(),
+  grabModeItemId: null,
+  grabModeOriginalPosition: null,
+  dependencyGraphOpen: false,
+  rootDisplayName: loadRootDisplayName(),
 
   setCurrentView: (view) => set({ currentView: view }),
+  setRootDisplayName: (name) => {
+    const value = typeof name === 'string' && name.trim() !== '' ? name.trim() : 'Home'
+    persistRootDisplayName(value)
+    set({ rootDisplayName: value })
+  },
   setCommandPaletteCommands: (commands) => set({ commandPaletteCommands: commands }),
   setPreviousView: (view) => set({ previousView: view }),
   setOnboardingOpen: (open) => set({ onboardingOpen: open }),
   setHelpOpen: (open) => set({ helpOpen: open }),
   setShortcutSheetOpen: (open) => set({ shortcutSheetOpen: open }),
+  setBackslashMenuOpen: (open, position) =>
+    set({ backslashMenuOpen: open, backslashMenuPosition: position ?? null }),
+  closeBackslashMenu: () => set({ backslashMenuOpen: false, backslashMenuPosition: null }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setSearchBarOpen: (open) => set({ searchBarOpen: open }),
   setSearchResultTaskIds: (ids) => set({ searchResultTaskIds: ids }),
@@ -167,7 +244,15 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
     set({ activeFilters: DEFAULT_FILTER_STATE, searchResultTaskIds: null }),
   setNavigationPath: (path) => set({ navigationPath: path }),
   pushNavigation: (id) =>
-    set((s) => ({ navigationPath: [...s.navigationPath, id] })),
+    set((s) => {
+      const next = s.navigationPath.filter((x) => x !== id)
+      next.push(id)
+      return { navigationPath: next }
+    }),
+  replaceNavigationFrom: (columnIndex, directoryId) =>
+    set((s) => ({
+      navigationPath: [...s.navigationPath.slice(0, columnIndex), directoryId],
+    })),
   popNavigation: () =>
     set((s) => ({
       navigationPath: s.navigationPath.length > 1 ? s.navigationPath.slice(0, -1) : [],
@@ -208,4 +293,20 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
         s.undoCurrentIndex < 0 ? items.length - 1 : s.undoCurrentIndex + items.length
       return { undoStack: stack, undoCurrentIndex: index }
     }),
+  setGrabModeItem: (id, parentId, position) =>
+    set({
+      grabModeItemId: id,
+      grabModeOriginalPosition: id && parentId != null && position != null
+        ? { parentId, position }
+        : null,
+    }),
+  pushRecentAction: (commandId) =>
+    set((s) => {
+      const filtered = s.recentActions.filter((a) => a.commandId !== commandId)
+      const next = [{ commandId, timestamp: Date.now() }, ...filtered].slice(0, MAX_RECENT_ACTIONS)
+      persistRecentActions(next)
+      return { recentActions: next }
+    }),
+  setDependencyGraphOpen: (open) => set({ dependencyGraphOpen: open }),
+  toggleDependencyGraph: () => set((s) => ({ dependencyGraphOpen: !s.dependencyGraphOpen })),
 }))

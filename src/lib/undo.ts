@@ -8,10 +8,12 @@
  */
 
 import type { Task, Directory } from '../types'
+import type { TaskLink } from '../types/links'
 import type { ActionHistoryItem } from '../types/state'
 import { useAppStore } from '../stores/appStore'
 import { useTaskStore } from '../stores/taskStore'
 import { useDirectoryStore } from '../stores/directoryStore'
+import { useLinkStore } from '../stores/linkStore'
 import { useFeedbackStore } from '../stores/feedbackStore'
 import { insertActionHistory, loadMoreActionHistory } from '../api/actionHistory'
 
@@ -132,6 +134,7 @@ export async function performUndo(action: ActionHistoryItem): Promise<void> {
             description: prev.description ?? undefined,
             is_completed: prev.is_completed,
             completed_at: prev.completed_at ?? undefined,
+            status: prev.status,
             position: prev.position,
             directory_id: prev.directory_id,
           })
@@ -177,6 +180,24 @@ export async function performUndo(action: ActionHistoryItem): Promise<void> {
       case 'complete':
         // Optional: restore previous is_completed state
         break
+      case 'link': {
+        const data = action.entityData as Record<string, unknown> | null
+        if (!data) break
+        const linkStore = useLinkStore.getState()
+        const undoAction = data.undoAction as string
+        if (undoAction === 'delete') {
+          // Undo of a "create link" — delete the link
+          const linkId = data.linkId as string
+          if (linkId) await linkStore.removeLink(linkId)
+        } else if (undoAction === 'recreate') {
+          // Undo of a "delete link" — recreate it
+          const link = data.link as TaskLink | undefined
+          if (link) {
+            await linkStore.addLink(link.source_id, link.target_id, link.link_type, link.user_id)
+          }
+        }
+        break
+      }
       default:
         break
     }
@@ -237,6 +258,7 @@ export async function performRedo(action: ActionHistoryItem): Promise<void> {
             description: newState.description as string | null,
             is_completed: newState.is_completed as boolean,
             completed_at: newState.completed_at as string | null,
+            status: newState.status as Task['status'],
             position: newState.position as number,
             directory_id: newState.directory_id as string,
           })
@@ -281,6 +303,24 @@ export async function performRedo(action: ActionHistoryItem): Promise<void> {
       }
       case 'complete':
         break
+      case 'link': {
+        const data = action.entityData as Record<string, unknown> | null
+        if (!data) break
+        const linkStore = useLinkStore.getState()
+        const undoAction = data.undoAction as string
+        if (undoAction === 'delete') {
+          // Redo of "create link" — re-create the link
+          const link = data.link as TaskLink | undefined
+          if (link) {
+            await linkStore.addLink(link.source_id, link.target_id, link.link_type, link.user_id)
+          }
+        } else if (undoAction === 'recreate') {
+          // Redo of "delete link" — delete it again
+          const linkId = data.linkId as string
+          if (linkId) await linkStore.removeLink(linkId)
+        }
+        break
+      }
       default:
         break
     }

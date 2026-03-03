@@ -1,4 +1,7 @@
-// Flow design tokens (light mode only)
+// Flow design tokens — light-mode defaults (static fallbacks).
+// At runtime, the actual colors are defined via CSS custom properties in index.css
+// and switch automatically between light/dark via the [data-theme] attribute.
+// These constants remain as static fallbacks for contexts where CSS vars aren't available.
 
 export const colors = {
   background: '#FFFFFF',

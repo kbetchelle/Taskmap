@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { Task, TaskAttachment } from '../../types'
+import type { Task, TaskAttachment, TaskStatus, RecurringTask } from '../../types'
 import type { TaskPriority } from '../../types'
 import { getDirectoryPath } from '../../api/directories'
 import { listAttachments, addAttachments, removeAttachment, openAttachment } from '../../api/attachments'
+import { createNextRecurrence } from '../../api/tasks'
 import {
   isOverdue,
   formatDateNatural,
@@ -26,6 +27,12 @@ import { useAppContext } from '../../contexts/AppContext'
 import { useFeedbackStore } from '../../stores/feedbackStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { MAX_ATTACHMENT_FILE_SIZE } from '../../lib/constants'
+import { ContentEditor } from '../ContentEditor'
+import { StatusIcon } from '../StatusIcon'
+import { LinkedReferences } from '../LinkedReferences'
+import { StatusDropdown } from '../StatusDropdown'
+import { getNextStatus, getStatusLabel, getAutoArchiveCountdown, deriveCompletionFields } from '../../lib/statusUtils'
+import { useReadOnly } from '../../hooks/useReadOnly'
 
 interface MetadataFieldProps {
   label: string
@@ -71,6 +78,134 @@ function MetadataField({
         {value}
       </div>
     </div>
+  )
+}
+
+/** Status row with interactive StatusIcon and dropdown */
+function ExpandedStatusRow({
+  task,
+  updateTask,
+}: {
+  task: Task
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>
+}) {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
+
+  /** After a status change to 'completed', create the next recurrence if applicable. */
+  const handleRecurrence = useCallback(async (completedTask: Task) => {
+    if (!completedTask.recurrence_pattern) return
+    try {
+      const nextTask = await createNextRecurrence(completedTask as RecurringTask)
+      if (nextTask) {
+        const currentTasks = useTaskStore.getState().tasks
+        useTaskStore.getState().setTasks([...currentTasks, nextTask])
+        useFeedbackStore.getState().showSuccess('Created next occurrence')
+      }
+    } catch {
+      useFeedbackStore.getState().showError('Failed to create next occurrence')
+    }
+  }, [])
+
+  const handleClick = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation()
+      const next = getNextStatus(task.status)
+      const derived = deriveCompletionFields(next, task.completed_at)
+      await updateTask(task.id, { status: next, ...derived })
+      if (next === 'completed') {
+        await handleRecurrence(task)
+      }
+    },
+    [task, updateTask, handleRecurrence]
+  )
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDropdownPos({ top: e.clientY, left: e.clientX })
+    setDropdownOpen(true)
+  }, [])
+
+  const handleSelect = useCallback(
+    async (status: TaskStatus) => {
+      const derived = deriveCompletionFields(status, task.completed_at)
+      await updateTask(task.id, { status, ...derived })
+      if (status === 'completed') {
+        await handleRecurrence(task)
+      }
+      setDropdownOpen(false)
+    },
+    [task, updateTask, handleRecurrence]
+  )
+
+  const archiveCountdown = task.status === 'completed' ? getAutoArchiveCountdown(task.completed_at) : null
+
+  return (
+    <>
+      <div className="flex items-center gap-2 self-start">
+        <StatusIcon
+          status={task.status}
+          size={18}
+          onClick={handleClick}
+          onContextMenu={handleContextMenu}
+        />
+        <span className="text-sm font-flow-medium text-flow-textPrimary">
+          {getStatusLabel(task.status)}
+        </span>
+        {archiveCountdown && (
+          <span className="text-flow-meta text-flow-textSecondary ml-1">{archiveCountdown}</span>
+        )}
+      </div>
+      {dropdownOpen && (
+        <StatusDropdown
+          currentStatus={task.status}
+          onSelect={handleSelect}
+          onClose={() => setDropdownOpen(false)}
+          anchorPosition={dropdownPos}
+        />
+      )}
+    </>
+  )
+}
+
+/** Priority row with click-to-cycle */
+function ExpandedPriorityRow({
+  task,
+  updateTask,
+  settings,
+}: {
+  task: Task
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>
+  settings: ReturnType<typeof useSettingsStore.getState>['settings']
+}) {
+  const cycle: (TaskPriority | null)[] = ['HIGH', 'MED', 'LOW', null]
+  const handleCycle = useCallback(async () => {
+    const currentIdx = cycle.indexOf(task.priority)
+    const next = cycle[(currentIdx + 1) % cycle.length]
+    await updateTask(task.id, { priority: next })
+  }, [task, updateTask])
+
+  if (!task.priority) {
+    return (
+      <button
+        onClick={handleCycle}
+        className="text-flow-meta text-flow-textSecondary hover:text-flow-textPrimary transition-colors text-left"
+      >
+        + Set priority
+      </button>
+    )
+  }
+
+  return (
+    <button onClick={handleCycle} className="w-full text-left">
+      <MetadataField
+        label="Priority"
+        value={formatPriority(task.priority as TaskPriority)}
+        icon={getPriorityIcon(task.priority as TaskPriority)}
+        color={getPriorityColor(task.priority as TaskPriority, settings)}
+      />
+    </button>
   )
 }
 
@@ -143,12 +278,12 @@ function AttachmentList({
   return (
     <div className="flex flex-col gap-3">
       {attachments.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 p-5 bg-neutral-50 border border-dashed border-flow-columnBorder rounded-lg text-center">
+        <div className="flex flex-col items-center gap-3 p-5 bg-flow-surface border border-dashed border-flow-columnBorder rounded-lg text-center">
           <p className="m-0 text-flow-textSecondary text-sm">No attachments</p>
           <button
             type="button"
             onClick={onAddAttachment}
-            className="text-sm font-flow-medium border border-flow-columnBorder rounded-md px-3 py-2 bg-white hover:bg-neutral-50 transition-colors"
+            className="text-sm font-flow-medium border border-flow-columnBorder rounded-md px-3 py-2 bg-flow-background hover:bg-flow-hover transition-colors"
           >
             Add Attachment (Cmd+Shift+F)
           </button>
@@ -159,7 +294,7 @@ function AttachmentList({
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="flex items-center gap-3 p-2.5 bg-neutral-50 rounded-md hover:bg-neutral-100 transition-colors"
+                className="flex items-center gap-3 p-2.5 bg-flow-surface rounded-md hover:bg-flow-hover transition-colors"
               >
                 <div className="text-2xl flex-shrink-0">{getFileIcon(att.file_type)}</div>
                 <div className="flex-1 min-w-0">
@@ -200,7 +335,7 @@ function AttachmentList({
             <button
               type="button"
               onClick={onAddAttachment}
-              className="text-xs font-flow-medium text-[#007AFF] border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-neutral-50 transition-colors"
+              className="text-xs font-flow-medium text-flow-focus border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-flow-hover transition-colors"
             >
               + Add More
             </button>
@@ -208,7 +343,7 @@ function AttachmentList({
               <button
                 type="button"
                 onClick={onOpenAll}
-                className="text-xs font-flow-medium text-flow-textSecondary border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-neutral-50"
+                className="text-xs font-flow-medium text-flow-textSecondary border border-flow-columnBorder rounded-md px-3 py-2 bg-transparent hover:bg-flow-hover"
               >
                 Open all (Cmd+Shift+O)
               </button>
@@ -239,6 +374,7 @@ export function ExpandedTaskPanelContent({
   onTaskUpdated,
   mobile = false,
 }: ExpandedTaskPanelContentProps) {
+  const { isReadOnly } = useReadOnly()
   const { userId } = useAppContext()
   const [locationPath, setLocationPath] = useState<string[]>([])
   const [locationLoading, setLocationLoading] = useState(true)
@@ -251,6 +387,13 @@ export function ExpandedTaskPanelContent({
   const showSuccess = useFeedbackStore((s) => s.showSuccess)
   const updateTask = useTaskStore((s) => s.updateTask)
   const settings = useSettingsStore((s) => s.settings)
+
+  const handleDescriptionSave = useCallback(
+    async (html: string) => {
+      await updateTask(task.id, { description: html || null })
+    },
+    [updateTask, task.id]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -362,21 +505,10 @@ export function ExpandedTaskPanelContent({
           <h2 className="text-lg font-semibold text-flow-textPrimary m-0 leading-snug">
             {task.title}
           </h2>
-          {task.is_completed && (
-            <span className="inline-flex px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded self-start">
-              ✓ Completed
-            </span>
-          )}
+          <ExpandedStatusRow task={task} updateTask={updateTask} />
         </div>
         <div className="flex flex-col gap-5 flex-1">
-          {task.priority && (
-            <MetadataField
-              label="Priority"
-              value={formatPriority(task.priority as TaskPriority)}
-              icon={getPriorityIcon(task.priority as TaskPriority)}
-              color={getPriorityColor(task.priority as TaskPriority, settings)}
-            />
-          )}
+          <ExpandedPriorityRow task={task} updateTask={updateTask} settings={settings} />
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
               Dates
@@ -429,7 +561,7 @@ export function ExpandedTaskPanelContent({
                 {task.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-2.5 py-1 bg-neutral-100 text-flow-textPrimary text-xs font-medium rounded-full"
+                    className="px-2.5 py-1 bg-flow-surface text-flow-textPrimary text-xs font-medium rounded-full"
                   >
                     {tag}
                   </span>
@@ -437,16 +569,17 @@ export function ExpandedTaskPanelContent({
               </div>
             </div>
           )}
-          {task.description && (
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
-                Description
-              </h3>
-              <p className="text-sm leading-relaxed text-flow-textPrimary m-0 whitespace-pre-wrap">
-                {task.description}
-              </p>
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
+              Description
+            </h3>
+            <ContentEditor
+              initialContent={task.description}
+              taskId={task.id}
+              onSave={handleDescriptionSave}
+            />
+          </div>
+          <LinkedReferences taskId={task.id} />
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-flow-textSecondary m-0">
               Attachments
@@ -476,15 +609,17 @@ export function ExpandedTaskPanelContent({
         <div className="flex gap-2 pt-4 border-t border-flow-columnBorder">
           <button
             type="button"
-            onClick={onEdit}
-            className="flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-white text-flow-textPrimary hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2"
+            onClick={isReadOnly ? undefined : onEdit}
+            disabled={isReadOnly}
+            className={`flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-flow-background text-flow-textPrimary transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2 ${isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-flow-hover'}`}
+            data-write-action=""
           >
             {mobile ? 'Edit' : 'Edit (Cmd+Shift+E)'}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-white text-flow-textPrimary hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2"
+            className="flex-1 py-2.5 px-4 text-sm font-medium border border-flow-columnBorder rounded-md bg-flow-background text-flow-textPrimary hover:bg-flow-hover transition-colors focus:outline-none focus:ring-2 focus:ring-flow-focus focus:ring-offset-2"
           >
             {mobile ? 'Close' : 'Close (Esc)'}
           </button>

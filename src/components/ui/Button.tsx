@@ -8,8 +8,8 @@ export function Button({ variant = 'primary', className = '', children, ...props
   const base = 'px-3 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50'
   const variants = {
     primary: 'bg-accent text-white hover:bg-accent/90',
-    secondary: 'bg-neutral-200 text-neutral-900 hover:bg-neutral-300',
-    ghost: 'text-neutral-700 hover:bg-neutral-100',
+    secondary: 'bg-flow-surface text-flow-textPrimary hover:bg-flow-hover',
+    ghost: 'text-flow-textSecondary hover:bg-flow-hover',
   }
   return (
     <button className={`${base} ${variants[variant]} ${className}`} {...props}>

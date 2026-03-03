@@ -8,7 +8,7 @@ export async function searchTasks(userId: string, filters: FilterState): Promise
     .select('*')
     .eq('user_id', userId)
     .is('archived_at', null)
-    .eq('is_completed', filters.showCompleted)
+    .eq('is_completed', filters.showCompleted)  // is_completed stays in sync with status
     .order('position', { ascending: true })
 
   const q = filters.searchQuery.trim()

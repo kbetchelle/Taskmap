@@ -2,31 +2,34 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../../stores/appStore'
 import { useShortcutStore } from '../../lib/shortcutManager'
 import { formatShortcutForDisplay } from '../../lib/platform'
-import { KEYBOARD_SHORTCUTS } from '../../lib/keyboardShortcuts'
-import type { KeyboardShortcut, ShortcutCategory } from '../../types/keyboard'
+import { SHORTCUT_BINDINGS, type ShortcutBinding } from '../../lib/shortcutRegistry'
+import type { ShortcutCategory } from '../../types/keyboard'
 
-function formatShortcutDisplay(s: KeyboardShortcut): string {
-  if (s.action) {
-    const shortcut = useShortcutStore.getState().getShortcut(s.action)
-    return formatShortcutForDisplay(shortcut || '')
+function formatBindingDisplay(b: ShortcutBinding): string {
+  // Prefer the user-remapped shortcut if available
+  const remapped = useShortcutStore.getState().getShortcut(b.action)
+  const base = formatShortcutForDisplay(remapped || b.keys)
+  // For chord bindings, append the second key so users see e.g. "⌃+Space → G"
+  if (b.isChord && b.chordSecondKey) {
+    return `${base} → ${b.chordSecondKey.toUpperCase()}`
   }
-  return s.modifiers ? `${s.modifiers}+${s.key}` : s.key
+  return base
 }
 
-function filterShortcuts(
-  shortcuts: KeyboardShortcut[],
+function filterBindings(
+  bindings: ShortcutBinding[],
   query: string,
   category: ShortcutCategory | null
-): KeyboardShortcut[] {
+): ShortcutBinding[] {
   let list = category
-    ? shortcuts.filter((s) => s.category === category)
-    : shortcuts
+    ? bindings.filter((b) => b.category === category)
+    : bindings
   if (query.trim()) {
     const lower = query.toLowerCase()
     list = list.filter(
-      (s) =>
-        s.description.toLowerCase().includes(lower) ||
-        formatShortcutDisplay(s).toLowerCase().includes(lower)
+      (b) =>
+        b.label.toLowerCase().includes(lower) ||
+        formatBindingDisplay(b).toLowerCase().includes(lower)
     )
   }
   return list
@@ -48,9 +51,16 @@ export function ShortcutSheet() {
   const sheetRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const categories = useMemo(
-    () => Array.from(new Set(KEYBOARD_SHORTCUTS.map((s) => s.category))),
+  // Exclude grab sub-actions (only meaningful inside grab mode, and they're
+  // just arrow keys — confusingly duplicate the navigation entries).
+  // grab.activate (isChord) IS shown so users know how to enter grab mode.
+  const displayBindings = useMemo(
+    () => SHORTCUT_BINDINGS.filter(b => !b.contexts?.includes('grab')),
     []
+  )
+  const categories = useMemo(
+    () => Array.from(new Set(displayBindings.map((b) => b.category))),
+    [displayBindings]
   )
   const mappingsMap = useShortcutStore((s) => s.mappings)
   const mappings = useMemo(
@@ -58,15 +68,16 @@ export function ShortcutSheet() {
     [mappingsMap]
   )
   const filtered = useMemo(
-    () => filterShortcuts(KEYBOARD_SHORTCUTS, searchQuery, selectedCategory),
-    [searchQuery, selectedCategory, mappings]
+    () => filterBindings(displayBindings, searchQuery, selectedCategory),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [displayBindings, searchQuery, selectedCategory, mappings]
   )
   const filteredByCategory = useMemo(() => {
-    const map = new Map<string, KeyboardShortcut[]>()
-    for (const s of filtered) {
-      const list = map.get(s.category) ?? []
-      list.push(s)
-      map.set(s.category, list)
+    const map = new Map<string, ShortcutBinding[]>()
+    for (const b of filtered) {
+      const list = map.get(b.category) ?? []
+      list.push(b)
+      map.set(b.category, list)
     }
     return map
   }, [filtered])
@@ -152,7 +163,7 @@ export function ShortcutSheet() {
             </p>
           ) : (
             CATEGORY_ORDER.filter((cat) => filteredByCategory.has(cat)).map((category) => {
-              const shortcuts = filteredByCategory.get(category)!
+              const bindings = filteredByCategory.get(category)!
               return (
                 <section key={category}>
                   <h3 className="text-flow-meta font-flow-semibold text-flow-textSecondary mb-2">
@@ -160,12 +171,12 @@ export function ShortcutSheet() {
                   </h3>
                   <table className="w-full text-left text-flow-task text-flow-textPrimary">
                     <tbody>
-                      {shortcuts.map((s, i) => (
-                        <tr key={`${s.key}-${s.modifiers ?? ''}-${i}`}>
+                      {bindings.map((b) => (
+                        <tr key={b.id}>
                           <td className="py-1 pr-4 font-mono text-flow-meta text-flow-textSecondary whitespace-nowrap">
-                            {formatShortcutDisplay(s)}
+                            {formatBindingDisplay(b)}
                           </td>
-                          <td className="py-1">{s.description}</td>
+                          <td className="py-1">{b.label}</td>
                         </tr>
                       ))}
                     </tbody>

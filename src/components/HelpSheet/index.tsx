@@ -2,8 +2,8 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import { useAppStore } from '../../stores/appStore'
 import { useShortcutStore } from '../../lib/shortcutManager'
 import { formatShortcutForDisplay } from '../../lib/platform'
-import { KEYBOARD_SHORTCUTS } from '../../lib/keyboardShortcuts'
-import type { KeyboardShortcut, ShortcutCategory } from '../../types/keyboard'
+import { SHORTCUT_BINDINGS, type ShortcutBinding } from '../../lib/shortcutRegistry'
+import type { ShortcutCategory } from '../../types/keyboard'
 import { Button } from '../ui/Button'
 
 const CATEGORY_ORDER: ShortcutCategory[] = [
@@ -14,30 +14,35 @@ const CATEGORY_ORDER: ShortcutCategory[] = [
   'Other',
 ]
 
-function formatShortcutDisplay(s: KeyboardShortcut): string {
-  if (s.action) {
-    const shortcut = useShortcutStore.getState().getShortcut(s.action)
-    return formatShortcutForDisplay(shortcut || '')
+function formatBindingDisplay(b: ShortcutBinding): string {
+  const remapped = useShortcutStore.getState().getShortcut(b.action)
+  const base = formatShortcutForDisplay(remapped || b.keys)
+  if (b.isChord && b.chordSecondKey) {
+    return `${base} → ${b.chordSecondKey.toUpperCase()}`
   }
-  return s.modifiers ? `${s.modifiers}+${s.key}` : s.key
+  return base
 }
 
 function ShortcutsPage() {
   useShortcutStore((s) => s.mappings) // subscribe so custom shortcuts re-render
+  const displayBindings = useMemo(
+    () => SHORTCUT_BINDINGS.filter(b => !b.contexts?.includes('grab')),
+    []
+  )
   const byCategory = useMemo(() => {
-    const map = new Map<string, KeyboardShortcut[]>()
-    for (const s of KEYBOARD_SHORTCUTS) {
-      const list = map.get(s.category) ?? []
-      list.push(s)
-      map.set(s.category, list)
+    const map = new Map<string, ShortcutBinding[]>()
+    for (const b of displayBindings) {
+      const list = map.get(b.category) ?? []
+      list.push(b)
+      map.set(b.category, list)
     }
     return map
-  }, [])
+  }, [displayBindings])
 
   return (
     <div className="overflow-y-auto p-4 space-y-4 flex-1 min-h-0">
       {CATEGORY_ORDER.filter((cat) => byCategory.has(cat)).map((category) => {
-        const shortcuts = byCategory.get(category)!
+        const bindings = byCategory.get(category)!
         return (
           <section key={category}>
             <h3 className="text-flow-meta font-flow-semibold text-flow-textSecondary mb-2">
@@ -45,12 +50,12 @@ function ShortcutsPage() {
             </h3>
             <table className="w-full text-left text-flow-task text-flow-textPrimary">
               <tbody>
-                {shortcuts.map((s, i) => (
-                  <tr key={`${s.key}-${s.modifiers ?? ''}-${i}`}>
+                {bindings.map((b) => (
+                  <tr key={b.id}>
                     <td className="py-1 pr-4 font-mono text-flow-meta text-flow-textSecondary whitespace-nowrap">
-                      {formatShortcutDisplay(s)}
+                      {formatBindingDisplay(b)}
                     </td>
-                    <td className="py-1">{s.description}</td>
+                    <td className="py-1">{b.label}</td>
                   </tr>
                 ))}
               </tbody>
@@ -101,19 +106,19 @@ function GettingStartedPage() {
         </h3>
         <ul className="list-disc pl-5 text-flow-task text-flow-textSecondary space-y-1.5 m-0">
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{newTaskShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{newTaskShortcut}</kbd>
             {' '}— Create a task or directory
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{cmdSlashShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{cmdSlashShortcut}</kbd>
             {' '}— Show keyboard shortcuts
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{commandPaletteShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{commandPaletteShortcut}</kbd>
             {' '}— Command palette
           </li>
           <li>
-            <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 border border-flow-columnBorder rounded text-sm font-mono">{settingsShortcut}</kbd>
+            <kbd className="px-1.5 py-0.5 bg-flow-surface border border-flow-columnBorder rounded text-sm font-mono">{settingsShortcut}</kbd>
             {' '}— Open settings
           </li>
           <li>Use arrow keys to move focus; Enter to open a task or expand a directory.</li>
@@ -170,14 +175,14 @@ export function HelpSheet() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-shrink-0 px-4 py-3 border-b border-flow-columnBorder flex items-center justify-between">
-          <div className="flex gap-1 rounded-md p-0.5 bg-neutral-100 dark:bg-neutral-800" role="tablist">
+          <div className="flex gap-1 rounded-md p-0.5 bg-flow-surface" role="tablist">
             <button
               type="button"
               role="tab"
               aria-selected={page === 'shortcuts'}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                 page === 'shortcuts'
-                  ? 'bg-white dark:bg-neutral-700 text-flow-textPrimary shadow-sm'
+                  ? 'bg-flow-background text-flow-textPrimary shadow-sm'
                   : 'text-flow-textSecondary hover:text-flow-textPrimary'
               }`}
               onClick={() => setPage('shortcuts')}
@@ -190,7 +195,7 @@ export function HelpSheet() {
               aria-selected={page === 'getting-started'}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                 page === 'getting-started'
-                  ? 'bg-white dark:bg-neutral-700 text-flow-textPrimary shadow-sm'
+                  ? 'bg-flow-background text-flow-textPrimary shadow-sm'
                   : 'text-flow-textSecondary hover:text-flow-textPrimary'
               }`}
               onClick={() => setPage('getting-started')}

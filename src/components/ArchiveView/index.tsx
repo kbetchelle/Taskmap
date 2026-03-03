@@ -176,7 +176,7 @@ export function ArchiveView() {
             {tasks.map((task) => (
               <li
                 key={task.id}
-                className="flex items-center gap-3 rounded border border-flow-columnBorder bg-white dark:bg-neutral-800 p-2"
+                className="flex items-center gap-3 rounded border border-flow-columnBorder bg-flow-background p-2"
               >
                 <input
                   type="checkbox"

@@ -33,7 +33,7 @@ export interface SavedView {
 
 export interface ActionHistoryItem {
   id: string
-  actionType: 'create' | 'update' | 'delete' | 'move' | 'complete'
+  actionType: 'create' | 'update' | 'delete' | 'move' | 'complete' | 'link'
   entityType: 'task' | 'directory'
   entityData: Record<string, unknown> | null
   createdAt: number

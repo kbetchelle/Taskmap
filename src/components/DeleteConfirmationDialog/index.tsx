@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
 import type { Task, Directory } from '../../types'
+import { useActions } from '../../lib/actionRegistry'
 import { Button } from '../ui/Button'
 
 function isTask(item: Task | Directory): item is Task {
@@ -19,20 +19,10 @@ export function DeleteConfirmationDialog({
   onConfirm,
   onCancel,
 }: DeleteConfirmationDialogProps) {
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onCancel()
-      }
-      if (e.key === 'Enter') {
-        e.preventDefault()
-        onConfirm()
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [onConfirm, onCancel])
+  useActions({
+    'confirm.yes': onConfirm,
+    'confirm.cancel': onCancel,
+  })
 
   const tasksOnly = items.length > 0 && items.every((i) => isTask(i))
   const archiveHint = ' You can restore from Archive (⌘⇧A).'
@@ -77,7 +67,7 @@ export function DeleteConfirmationDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-4 shadow-lg"
+        className="w-full max-w-sm rounded-lg border border-flow-columnBorder bg-flow-background p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-sm text-neutral-900 whitespace-pre-wrap mb-4">{message}</p>

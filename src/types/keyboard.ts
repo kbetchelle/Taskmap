@@ -3,11 +3,15 @@
 export type KeyboardContext =
   | 'navigation'
   | 'creation'
+  | 'creation_modal'
   | 'editing'
   | 'search'
   | 'settings'
   | 'confirmation'
   | 'shortcut-sheet'
+  | 'sidebar'
+  | 'command_menu'
+  | 'grab'
 
 export interface FocusHistoryItem {
   columnIndex: number

@@ -3,8 +3,10 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { useDirectoryStore } from '../stores/directoryStore'
 import { useTaskStore } from '../stores/taskStore'
+import { useLinkStore } from '../stores/linkStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useAppStore } from '../stores/appStore'
+import { useNetworkStore } from '../stores/networkStore'
 import { loadRecentActionHistory } from '../api/actionHistory'
 import type { ActionHistoryItem } from '../types/state'
 
@@ -33,15 +35,26 @@ export function useAuthSyncStores() {
   const { user } = useAuthStore()
   const fetchDirectories = useDirectoryStore((s) => s.fetchDirectories)
   const fetchActiveItems = useTaskStore((s) => s.fetchActiveItems)
+  const fetchLinksForUser = useLinkStore((s) => s.fetchLinksForUser)
   const fetchSettings = useSettingsStore((s) => s.fetchSettings)
   const setUndoStack = useAppStore((s) => s.setUndoStack)
   const setUndoCurrentIndex = useAppStore((s) => s.setUndoCurrentIndex)
 
   useEffect(() => {
     if (!user?.id) return
-    fetchDirectories(user.id)
-    fetchActiveItems(user.id)
-    fetchSettings(user.id)
+
+    // Fetch all data and update lastSyncedAt on success
+    Promise.all([
+      fetchDirectories(user.id),
+      fetchActiveItems(user.id),
+      fetchLinksForUser(user.id),
+      fetchSettings(user.id),
+    ]).then(() => {
+      useNetworkStore.getState().setLastSyncedAt(Date.now())
+    }).catch(() => {
+      // Individual fetches handle their own errors
+    })
+
     loadRecentActionHistory(user.id, 20).then((rows) => {
       const currentStack = useAppStore.getState().undoStack
       if (currentStack.length > 0) return
@@ -56,5 +69,5 @@ export function useAuthSyncStores() {
       setUndoStack(items)
       setUndoCurrentIndex(items.length - 1)
     })
-  }, [user?.id, fetchDirectories, fetchActiveItems, fetchSettings, setUndoStack, setUndoCurrentIndex])
+  }, [user?.id, fetchDirectories, fetchActiveItems, fetchLinksForUser, fetchSettings, setUndoStack, setUndoCurrentIndex])
 }

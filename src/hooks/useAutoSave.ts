@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react'
 import { toAppError, type AppError } from '../lib/errors'
+import { useNetworkStore } from '../stores/networkStore'
 
 interface UseAutoSaveOptions<T> {
   value: T
@@ -30,6 +31,8 @@ export function useAutoSave<T>({
 
   const saveNow = useCallback(async () => {
     if (!enabled || savingRef.current) return
+    // Skip save when offline (read-only mode)
+    if (!useNetworkStore.getState().isOnline) return
     savingRef.current = true
     previousValueRef.current = valueRef.current
     try {

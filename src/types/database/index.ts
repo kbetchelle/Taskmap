@@ -2,7 +2,9 @@
 
 export type TaskPriority = 'LOW' | 'MED' | 'HIGH';
 
-export type ActionType = 'create' | 'update' | 'delete' | 'move' | 'complete';
+export type TaskStatus = 'not_started' | 'in_progress' | 'finishing_touches' | 'completed';
+
+export type ActionType = 'create' | 'update' | 'delete' | 'move' | 'complete' | 'link';
 export type EntityType = 'task' | 'directory';
 
 export interface RecurrencePattern {
@@ -51,6 +53,7 @@ export interface Task {
   description: string | null;
   is_completed: boolean;
   completed_at: string | null;
+  status: TaskStatus;
   archived_at: string | null;
   archive_reason: 'completed' | 'user_deleted' | 'auto_archived' | null;
   position: number;
@@ -59,6 +62,7 @@ export interface Task {
   user_id: string;
   version?: number;
   updated_by?: string | null;
+  url?: string | null;
   recurrence_pattern?: RecurrencePattern | null;
   recurrence_parent_id?: string | null;
   recurrence_series_id?: string | null;
@@ -113,8 +117,20 @@ export interface UserSettings {
   saved_views?: SavedViewRow[] | null;
   skip_starter_structure: boolean;
   custom_shortcuts?: Record<string, string> | null;
+  theme_mode?: 'light' | 'dark' | 'system';
+  accent_color?: string;
+  creation_mode?: 'modal' | 'inline';
   created_at: string;
   updated_at: string;
+}
+
+/** Context passed when opening the creation modal. */
+export interface CreationContext {
+  parentDirectoryId: string | null;
+  type?: 'task' | 'directory' | 'link';
+  status?: TaskStatus;
+  dueDate?: string;
+  position?: number;
 }
 
 export interface ActionHistory {
@@ -139,4 +155,5 @@ export interface ActiveItemRow {
   priority: TaskPriority | null;
   due_date: string | null;
   is_completed: boolean | null;
+  status: TaskStatus | null;
 }

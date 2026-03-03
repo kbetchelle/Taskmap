@@ -20,10 +20,25 @@ export function Login() {
     e.preventDefault()
     setLoading(true)
     setMessage(null)
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Auto-confirm users (requires Supabase email confirmation to be disabled)
+        emailRedirectTo: undefined,
+      }
+    })
     setLoading(false)
-    if (error) setMessage({ type: 'error', text: error.message })
-    else setMessage({ type: 'success', text: 'Check your email for the confirmation link.' })
+    if (error) {
+      setMessage({ type: 'error', text: error.message })
+    } else if (data.user) {
+      // Check if user is confirmed or if confirmation is required
+      if (data.user.confirmed_at || data.session) {
+        setMessage({ type: 'success', text: 'Account created successfully! You can now sign in.' })
+      } else {
+        setMessage({ type: 'success', text: 'Check your email for the confirmation link.' })
+      }
+    }
   }
 
   async function handleSignIn(e: React.FormEvent) {
@@ -79,6 +94,7 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              data-keyboard-ignore
               required
             />
           </div>
@@ -93,6 +109,7 @@ export function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 pr-10 text-sm"
+                data-keyboard-ignore
                 required
               />
               <button

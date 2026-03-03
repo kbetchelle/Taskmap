@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, useCallback, useState } from 'react'
+import { useRef, useMemo, useCallback, useState } from 'react'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useAppStore } from '../../stores/appStore'
@@ -7,9 +7,10 @@ import { useAppContext } from '../../contexts/AppContext'
 import { showInlineError } from '../../lib/inlineError'
 import { pushUndoAndPersist } from '../../lib/undo'
 import { useFeedbackStore } from '../../stores/feedbackStore'
-import type { Task, Directory, RecurringTask } from '../../types'
+import type { Task, Directory, RecurringTask, TaskStatus } from '../../types'
 import { createNextRecurrence } from '../../api/tasks'
 import type { ColorMode, ClipboardItem, FilterState } from '../../types/state'
+import { getNextStatus, deriveCompletionFields } from '../../lib/statusUtils'
 import { Column } from '../Column'
 import { TaskCreationPanel } from '../TaskCreationPanel'
 import { TaskEditPanel } from '../TaskEditPanel'
@@ -94,11 +95,12 @@ export function MobileColumnsView({
   const addTask = useTaskStore((s) => s.addTask)
   const updateTask = useTaskStore((s) => s.updateTask)
   const removeTask = useTaskStore((s) => s.removeTask)
-  const archiveTask = useTaskStore((s) => s.archiveTask)
   const patchTaskActualDuration = useTaskStore((s) => s.patchTaskActualDuration)
   const selectedItemIds = useAppStore((s) => s.selectedItems)
-  const pushNavigation = useAppStore((s) => s.pushNavigation)
+  const replaceNavigationFrom = useAppStore((s) => s.replaceNavigationFrom)
   const popNavigation = useAppStore((s) => s.popNavigation)
+  const rootDisplayName = useAppStore((s) => s.rootDisplayName)
+  const setRootDisplayName = useAppStore((s) => s.setRootDisplayName)
   const toggleSelectedItem = useAppStore((s) => s.toggleSelectedItem)
   const setSelectedItems = useAppStore((s) => s.setSelectedItems)
   const clearSelection = useAppStore((s) => s.clearSelection)
@@ -120,36 +122,30 @@ export function MobileColumnsView({
   const editPanelState = useUIStore((s) => s.editPanelState)
   const setEditPanelState = useUIStore((s) => s.setEditPanelState)
   const setDraggingItemId = useUIStore((s) => s.setDraggingItemId)
-  const setCompletionTimeout = useUIStore((s) => s.setCompletionTimeout)
-  const clearCompletionTimeout = useUIStore((s) => s.clearCompletionTimeout)
   const setMobileMenuOpen = useUIStore((s) => s.setMobileMenuOpen)
   const setClipboardItems = useAppStore((s) => s.setClipboardItems)
   const cutItemIds = useAppStore((s) => s.cutItemIds)
   const setCutItemIds = useAppStore((s) => s.setCutItemIds)
 
-  const [columnStack, setColumnStack] = useState<string[]>(() => [...navigationPath])
   const [deleteConfirmItems, setDeleteConfirmItems] = useState<(Task | Directory)[] | null>(null)
   const addAttachmentTriggerRef = useRef<(() => void) | null>(null)
   const openAllAttachmentsTriggerRef = useRef<(() => void) | null>(null)
 
-  useEffect(() => {
-    setColumnStack([...navigationPath])
-  }, [navigationPath.join(',')])
-
+  const columnStack = navigationPath
   const currentDirectoryId = columnStack.length > 0 ? columnStack[columnStack.length - 1] : null
   const columnIndex = columnStack.length
   const columnIds = [null, ...columnStack] as (string | null)[]
 
-  const getItemsForColumn = useCallback(
-    (idx: number): (Task | Directory)[] => {
-      const parentId = idx === 0 ? null : columnStack[idx - 1]
+  /** Returns items for a given parent (no dependency on navigationPath). Use after replaceNavigationFrom to avoid stale path. */
+  const getItemsForParent = useCallback(
+    (parentId: string | null): (Task | Directory)[] => {
       let dirs = directories.filter((d) => d.parent_id === parentId)
       const taskFilter = parentId == null ? () => false : (t: Task) => t.directory_id === parentId
       let taskList = tasks.filter(taskFilter)
       dirs = filterByViewMode(dirs, viewMode)
       taskList = filterByViewMode(taskList, viewMode)
       if (viewMode === 'main_db' && !activeFilters.showCompleted)
-        taskList = taskList.filter((t) => !t.is_completed)
+        taskList = taskList.filter((t) => t.status !== 'completed')
       let combined: (Task | Directory)[] = [...dirs, ...taskList]
       const hasActiveFilters =
         activeFilters.searchQuery.trim() ||
@@ -182,26 +178,22 @@ export function MobileColumnsView({
         combined.sort((a, b) => a.position - b.position)
       return combined
     },
-    [directories, tasks, columnStack, viewMode, activeFilters, searchResultTaskIds]
+    [directories, tasks, viewMode, activeFilters, searchResultTaskIds]
   )
 
-  const COMPLETION_DELETE_MS = 6 * 60 * 60 * 1000
+  const getItemsForColumn = useCallback(
+    (idx: number): (Task | Directory)[] => {
+      const parentId = idx === 0 ? null : columnStack[idx - 1]
+      return getItemsForParent(parentId)
+    },
+    [columnStack, getItemsForParent]
+  )
+
   const CREATION_TIMEOUT_MS = 10_000
   const setTasks = useTaskStore((s) => s.setTasks)
 
-  const navigateForward = useCallback(
-    (directoryId: string) => {
-      setColumnStack((prev) => [...prev, directoryId])
-      pushNavigation(directoryId)
-      const items = getItemsForColumn(columnIndex + 1)
-      setFocusedItem(items.length > 0 ? items[0].id : null)
-    },
-    [pushNavigation, getItemsForColumn, columnIndex, setFocusedItem]
-  )
-
   const navigateBack = useCallback(() => {
     if (columnStack.length === 0) return
-    setColumnStack((prev) => prev.slice(0, -1))
     popNavigation()
     const prevItems = getItemsForColumn(columnIndex - 1)
     setFocusedItem(prevItems.length > 0 ? prevItems[0].id : null)
@@ -214,9 +206,11 @@ export function MobileColumnsView({
         pushKeyboardContext('editing')
         return
       }
-      navigateForward(item.id)
+      replaceNavigationFrom(columnIndex, item.id)
+      const items = getItemsForParent(item.id)
+      setFocusedItem(items.length > 0 ? items[0].id : null)
     },
-    [setExpandedTaskId, pushKeyboardContext, navigateForward]
+    [setExpandedTaskId, pushKeyboardContext, replaceNavigationFrom, columnIndex, getItemsForParent, setFocusedItem]
   )
 
   const handleItemSelect = useCallback(
@@ -273,7 +267,7 @@ export function MobileColumnsView({
   const saveDirectory = useCallback(
     async (itemId: string, name: string) => {
       if (!creationState || !userId) return
-      const parentId = creationState.columnIndex === 0 ? null : columnIds[creationState.columnIndex - 1] ?? null
+      const parentId = columnIds[creationState.columnIndex] ?? null
       const depthLevel =
         parentId == null ? 0 : (directories.find((d) => d.id === parentId)?.depth_level ?? 0) + 1
       const dir = {
@@ -508,6 +502,7 @@ export function MobileColumnsView({
             user_id: userId!,
             is_completed: false,
             completed_at: null,
+            status: 'not_started' as const,
             archived_at: null,
             archive_reason: null,
             priority: preserveMetadata ? task.priority : null,
@@ -587,27 +582,25 @@ export function MobileColumnsView({
     ]
   )
 
-  const handleCompleteTask = useCallback(
-    async (taskId: string) => {
-      const task = tasks.find((t) => t.id === taskId)
-      if (!task || !isTask(task)) return
-      const items = getItemsForColumn(columnIndex)
-      const maxPosition = items.length === 0 ? 0 : Math.max(...items.map((i) => i.position))
-      const completedAt = new Date().toISOString()
+  const changeTaskStatus = useCallback(
+    async (taskId: string, newStatus?: TaskStatus) => {
       const prevTasks = useTaskStore.getState().tasks
+      const task = prevTasks.find((t) => t.id === taskId)
+      if (!task) return
+      const targetStatus = newStatus ?? getNextStatus(task.status)
+      const derived = deriveCompletionFields(targetStatus, task.completed_at)
+      const items = getItemsForColumn(columnIndex)
+      const positionUpdate = targetStatus === 'completed'
+        ? { position: (items.length === 0 ? 0 : Math.max(...items.map((i) => i.position))) + 1 }
+        : {}
+      const updates = { status: targetStatus, ...derived, ...positionUpdate }
       const optimistic = prevTasks.map((t) =>
-        t.id === task.id
-          ? { ...t, is_completed: true, completed_at: completedAt, position: maxPosition + 1 }
-          : t
+        t.id === taskId ? { ...t, ...updates } : t
       )
       setTasks(optimistic)
       try {
-        await updateTask(task.id, {
-          is_completed: true,
-          completed_at: completedAt,
-          position: maxPosition + 1,
-        })
-        if (task.recurrence_pattern) {
+        await updateTask(taskId, updates)
+        if (targetStatus === 'completed' && task.recurrence_pattern) {
           try {
             const nextTask = await createNextRecurrence(task as RecurringTask)
             if (nextTask) {
@@ -619,17 +612,27 @@ export function MobileColumnsView({
             useFeedbackStore.getState().showError('Failed to create next occurrence')
           }
         }
-        const timeoutId = setTimeout(() => {
-          archiveTask(task.id, 'completed')
-          clearCompletionTimeout(task.id)
-        }, COMPLETION_DELETE_MS)
-        setCompletionTimeout(task.id, timeoutId)
       } catch {
         setTasks(prevTasks)
-        useFeedbackStore.getState().showError('Failed to complete task')
+        useFeedbackStore.getState().showError('Failed to update status')
       }
     },
-    [getItemsForColumn, columnIndex, setTasks, updateTask, archiveTask, setCompletionTimeout, clearCompletionTimeout]
+    [getItemsForColumn, columnIndex, setTasks, updateTask]
+  )
+
+  const handleCompleteTask = useCallback(
+    (taskId: string) => changeTaskStatus(taskId, 'completed'),
+    [changeTaskStatus]
+  )
+
+  const handleStatusClick = useCallback(
+    (taskId: string) => changeTaskStatus(taskId),
+    [changeTaskStatus]
+  )
+
+  const handleStatusContextMenu = useCallback(
+    (taskId: string, status: TaskStatus) => changeTaskStatus(taskId, status),
+    [changeTaskStatus]
   )
 
   const handleTaskSwipeLeft = useCallback(
@@ -678,11 +681,11 @@ export function MobileColumnsView({
 
   const headerLabel =
     currentDirectoryId == null
-      ? 'Home'
+      ? (rootDisplayName?.trim() || 'Home')
       : directories.find((d) => d.id === currentDirectoryId)?.name ?? ''
 
   return (
-    <div className="mobile-columns-view flex-1 min-h-0 flex flex-col bg-flow-background">
+    <div className="mobile-columns-view flex-1 min-h-0 flex flex-col bg-flow-background" style={{ paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}>
       <div className="mobile-breadcrumb flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-flow-columnBorder bg-flow-background">
         <Button
           variant="secondary"
@@ -701,7 +704,9 @@ export function MobileColumnsView({
         <Column
           columnIndex={columnIndex}
           directoryId={currentDirectoryId}
-          directoryName={headerLabel === 'Home' ? null : headerLabel}
+          directoryName={currentDirectoryId == null ? null : headerLabel}
+          rootDisplayName={columnIndex === 0 ? rootDisplayName : undefined}
+          onRootDisplayNameSave={columnIndex === 0 ? setRootDisplayName : undefined}
           items={getItemsForColumn(columnIndex)}
           usePagination={
             !!currentDirectoryId &&
@@ -748,6 +753,8 @@ export function MobileColumnsView({
           onTaskSwipeRight={handleCompleteTask}
           onTaskSwipeLeft={handleTaskSwipeLeft}
           onTaskLongPress={handleTaskLongPress}
+          onStatusClick={handleStatusClick}
+          onStatusContextMenu={handleStatusContextMenu}
         />
       </div>
 

@@ -1,4 +1,4 @@
-import { useRef, useMemo, useEffect, useCallback, useState } from 'react'
+import React, { useRef, useMemo, useEffect, useCallback, useState } from 'react'
 import { useDirectoryStore } from '../../stores/directoryStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useAppStore } from '../../stores/appStore'
@@ -6,13 +6,15 @@ import { useUIStore } from '../../stores/uiStore'
 import { useAppContext } from '../../contexts/AppContext'
 import { COLUMN_WIDTH_PX } from '../../lib/theme'
 import { useColumnScroll } from '../../hooks/useColumnScroll'
-import { useKeyboard } from '../../hooks/useKeyboard'
+import { useGrabMode } from '../../hooks/useGrabMode'
+import { useActions } from '../../lib/actionRegistry'
 import { showInlineError } from '../../lib/inlineError'
 import { pushUndoAndPersist, performUndo, performRedo, loadMoreUndoHistory } from '../../lib/undo'
 import { useFeedbackStore } from '../../stores/feedbackStore'
-import type { Task, Directory, RecurringTask } from '../../types'
+import type { Task, Directory, RecurringTask, TaskStatus } from '../../types'
 import { createNextRecurrence } from '../../api/tasks'
 import type { ColorMode, ClipboardItem, SavedView, FilterState } from '../../types/state'
+import { getNextStatus, getStatusLabel, deriveCompletionFields } from '../../lib/statusUtils'
 import { savedViewToRow } from '../../lib/savedViews'
 import { formatShortcutForDisplay } from '../../lib/platform'
 import { getEmptySlotId, isEmptySlotId, getColumnIndexFromEmptySlotId } from '../../lib/emptySlot'
@@ -25,6 +27,18 @@ import { TaskEditPanel } from '../TaskEditPanel'
 import { DirectoryEditPanel } from '../DirectoryEditPanel'
 import { DeleteConfirmationDialog } from '../DeleteConfirmationDialog'
 import { ExpandedTaskPanel } from '../ExpandedTaskPanel'
+import { BackslashMenu } from '../BackslashMenu'
+import { useBackslashMenu } from '../BackslashMenu/useBackslashMenu'
+import { LinkPicker } from '../LinkedReferences/LinkPicker'
+import { DragGhost } from '../DragSystem/DragGhost'
+import { useDragAutoScroll } from '../DragSystem/useDragAutoScroll'
+import { isCircularParent } from '../../lib/dragUtils'
+import { useViewStore } from '../../stores/viewStore'
+import { useViewData } from '../../hooks/useViewData'
+import type { ViewType } from '../../types/views'
+import { ViewSwitcher } from '../ViewSwitcher'
+import { CalendarView } from '../CalendarView'
+import { KanbanView } from '../KanbanView'
 
 interface ColumnsViewProps {
   viewMode: 'main_db' | 'upcoming'
@@ -98,11 +112,12 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const addTask = useTaskStore((s) => s.addTask)
   const updateTask = useTaskStore((s) => s.updateTask)
   const removeTask = useTaskStore((s) => s.removeTask)
-  const archiveTask = useTaskStore((s) => s.archiveTask)
   const patchTaskActualDuration = useTaskStore((s) => s.patchTaskActualDuration)
   const selectedItemIds = useAppStore((s) => s.selectedItems)
-  const pushNavigation = useAppStore((s) => s.pushNavigation)
+  const replaceNavigationFrom = useAppStore((s) => s.replaceNavigationFrom)
   const popNavigation = useAppStore((s) => s.popNavigation)
+  const rootDisplayName = useAppStore((s) => s.rootDisplayName)
+  const setRootDisplayName = useAppStore((s) => s.setRootDisplayName)
   const toggleSelectedItem = useAppStore((s) => s.toggleSelectedItem)
   const setSelectedItems = useAppStore((s) => s.setSelectedItems)
   const clearSelection = useAppStore((s) => s.clearSelection)
@@ -138,8 +153,6 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const editPanelState = useUIStore((s) => s.editPanelState)
   const setEditPanelState = useUIStore((s) => s.setEditPanelState)
   const setDraggingItemId = useUIStore((s) => s.setDraggingItemId)
-  const setCompletionTimeout = useUIStore((s) => s.setCompletionTimeout)
-  const clearCompletionTimeout = useUIStore((s) => s.clearCompletionTimeout)
   const popUndo = useAppStore((s) => s.popUndo)
   const redo = useAppStore((s) => s.redo)
   const clipboardItems = useAppStore((s) => s.clipboardItems)
@@ -147,6 +160,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const cutItemIds = useAppStore((s) => s.cutItemIds)
   const setCutItemIds = useAppStore((s) => s.setCutItemIds)
   const [deleteConfirmItems, setDeleteConfirmItems] = useState<(Task | Directory)[] | null>(null)
+  const [linkPickerTaskId, setLinkPickerTaskId] = useState<string | null>(null)
   const warnedDirSize = useRef(false)
   const warnedDepth = useRef(false)
 
@@ -154,16 +168,16 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
 
   const searchResultTaskIds = useAppStore((s) => s.searchResultTaskIds)
 
-  const getItemsForColumn = useCallback(
-    (columnIndex: number): (Task | Directory)[] => {
-      const parentId = columnIndex === 0 ? null : navigationPath[columnIndex - 1]
+  /** Returns items for a given parent (no dependency on navigationPath). Use after replaceNavigationFrom to avoid stale path. */
+  const getItemsForParent = useCallback(
+    (parentId: string | null): (Task | Directory)[] => {
       let dirs = directories.filter((d) => d.parent_id === parentId)
       const taskFilter = parentId == null ? () => false : (t: Task) => t.directory_id === parentId
       let taskList = tasks.filter(taskFilter)
       dirs = filterByViewMode(dirs, viewMode)
       taskList = filterByViewMode(taskList, viewMode)
       if (viewMode === 'main_db' && !activeFilters.showCompleted)
-        taskList = taskList.filter((t) => !t.is_completed)
+        taskList = taskList.filter((t) => t.status !== 'completed')
       let combined: (Task | Directory)[] = [...dirs, ...taskList]
       const hasActiveFilters =
         activeFilters.searchQuery.trim() ||
@@ -196,14 +210,15 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
         combined.sort((a, b) => a.position - b.position)
       return combined
     },
-    [
-      directories,
-      tasks,
-      navigationPath,
-      viewMode,
-      activeFilters,
-      searchResultTaskIds,
-    ]
+    [directories, tasks, viewMode, activeFilters, searchResultTaskIds]
+  )
+
+  const getItemsForColumn = useCallback(
+    (columnIndex: number): (Task | Directory)[] => {
+      const parentId = columnIndex === 0 ? null : navigationPath[columnIndex - 1]
+      return getItemsForParent(parentId)
+    },
+    [navigationPath, getItemsForParent]
   )
 
   const scrollToColumn = useCallback(
@@ -312,10 +327,10 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
       return
     }
     addToFocusHistory(focusedColumnIndex, item.id)
-    pushNavigation(item.id)
-    const newCol = columnIds.length
+    replaceNavigationFrom(focusedColumnIndex, item.id)
+    const newCol = focusedColumnIndex + 1
     setFocusedColumnIndex(newCol)
-    const newItems = getItemsForColumn(newCol)
+    const newItems = getItemsForParent(item.id)
     setFocusedItem(newItems.length > 0 ? newItems[0].id : getEmptySlotId(newCol))
     setTimeout(() => scrollToColumn(newCol), 50)
 
@@ -339,10 +354,9 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   }, [
     focusedColumnIndex,
     focusedItemId,
-    columnIds.length,
-    getItemsForColumn,
+    getItemsForParent,
     addToFocusHistory,
-    pushNavigation,
+    replaceNavigationFrom,
     setFocusedColumnIndex,
     setFocusedItem,
     setExpandedTaskId,
@@ -362,74 +376,73 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     collapseColumn()
   }, [selectedItemIds.length, clearSelection, collapseColumn])
 
-  const COMPLETION_DELETE_MS = 6 * 60 * 60 * 1000
-
   const setTasks = useTaskStore((s) => s.setTasks)
+
+  /** Cycle or set the status of a single task. Used by Space key, status click, and backslash menu. */
+  const changeTaskStatus = useCallback(async (taskId: string, newStatus?: TaskStatus) => {
+    const prevTasks = useTaskStore.getState().tasks
+    const task = prevTasks.find((t) => t.id === taskId)
+    if (!task) return
+
+    const targetStatus = newStatus ?? getNextStatus(task.status)
+    const derived = deriveCompletionFields(targetStatus, task.completed_at)
+    const items = getItemsForColumn(focusedColumnIndex)
+
+    // If transitioning to completed, move to bottom
+    const positionUpdate = targetStatus === 'completed'
+      ? { position: (items.length === 0 ? 0 : Math.max(...items.map((i) => i.position))) + 1 }
+      : {}
+
+    const updates = {
+      status: targetStatus,
+      ...derived,
+      ...positionUpdate,
+    }
+
+    // Optimistic update
+    const optimistic = prevTasks.map((t) =>
+      t.id === taskId ? { ...t, ...updates } : t
+    )
+    setTasks(optimistic)
+
+    try {
+      await updateTask(taskId, updates)
+
+      // Handle recurrence when completing
+      if (targetStatus === 'completed' && task.recurrence_pattern) {
+        try {
+          const nextTask = await createNextRecurrence(task as RecurringTask)
+          if (nextTask) {
+            const currentTasks = useTaskStore.getState().tasks
+            setTasks([...currentTasks, nextTask])
+            useFeedbackStore.getState().showSuccess('Created next occurrence')
+          }
+        } catch {
+          useFeedbackStore.getState().showError('Failed to create next occurrence')
+        }
+      }
+    } catch {
+      setTasks(prevTasks)
+      useFeedbackStore.getState().showError('Failed to update status')
+    }
+  }, [focusedColumnIndex, getItemsForColumn, setTasks, updateTask])
+
   const handleSpace = useCallback(async () => {
     const items = getItemsForColumn(focusedColumnIndex)
     const item = focusedItemId ? items.find((i) => i.id === focusedItemId) : undefined
     if (!item || !isTask(item)) return
-    const completed = !item.is_completed
-    const prevTasks = useTaskStore.getState().tasks
-    if (completed) {
-      const maxPosition = items.length === 0 ? 0 : Math.max(...items.map((i) => i.position))
-      const completedAt = new Date().toISOString()
-      const optimistic = prevTasks.map((t) =>
-        t.id === item.id
-          ? { ...t, is_completed: true, completed_at: completedAt, position: maxPosition + 1 }
-          : t
-      )
-      setTasks(optimistic)
-      try {
-        await updateTask(item.id, {
-          is_completed: true,
-          completed_at: completedAt,
-          position: maxPosition + 1,
-        })
-        if (item.recurrence_pattern) {
-          try {
-            const nextTask = await createNextRecurrence(item as RecurringTask)
-            if (nextTask) {
-              const currentTasks = useTaskStore.getState().tasks
-              setTasks([...currentTasks, nextTask])
-              useFeedbackStore.getState().showSuccess('Created next occurrence')
-            }
-          } catch {
-            useFeedbackStore.getState().showError('Failed to create next occurrence')
-          }
-        }
-        const timeoutId = setTimeout(() => {
-          archiveTask(item.id, 'completed')
-          clearCompletionTimeout(item.id)
-        }, COMPLETION_DELETE_MS)
-        setCompletionTimeout(item.id, timeoutId)
-      } catch {
-        setTasks(prevTasks)
-        useFeedbackStore.getState().showError('Failed to complete task')
-      }
-    } else {
-      const optimistic = prevTasks.map((t) =>
-        t.id === item.id ? { ...t, is_completed: false, completed_at: null } : t
-      )
-      setTasks(optimistic)
-      clearCompletionTimeout(item.id)
-      try {
-        await updateTask(item.id, { is_completed: false, completed_at: null })
-      } catch {
-        setTasks(prevTasks)
-        useFeedbackStore.getState().showError('Failed to uncomplete task')
-      }
-    }
-  }, [
-    focusedColumnIndex,
-    focusedItemId,
-    getItemsForColumn,
-    setTasks,
-    updateTask,
-    archiveTask,
-    setCompletionTimeout,
-    clearCompletionTimeout,
-  ])
+    await changeTaskStatus(item.id)
+  }, [focusedColumnIndex, focusedItemId, getItemsForColumn, changeTaskStatus])
+
+  /** Handle status click from StatusIcon in TaskItem */
+  const handleStatusClick = useCallback((taskId: string) => {
+    changeTaskStatus(taskId)
+  }, [changeTaskStatus])
+
+  /** Handle direct status set from StatusDropdown (right-click) */
+  const handleStatusContextMenu = useCallback((taskId: string, status: TaskStatus) => {
+    changeTaskStatus(taskId, status)
+  }, [changeTaskStatus])
 
   const handleScrollHome = useCallback(() => {
     scrollToStart()
@@ -460,10 +473,26 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
 
   const CREATION_TIMEOUT_MS = 10_000
 
-  const initiateCreation = useCallback(() => {
+  const openCreationModal = useUIStore((s) => s.openCreationModal)
+  const creationMode = useSettingsStore((s) => s.settings?.creation_mode ?? 'modal')
+
+  const initiateCreation = useCallback((typeOverride?: 'task' | 'directory') => {
+    const parentDirectoryId = columnIds[focusedColumnIndex] ?? null
     const items = getItemsForColumn(focusedColumnIndex)
     const idx = focusedItemId ? items.findIndex((i) => i.id === focusedItemId) : -1
     const itemIndex = idx >= 0 ? idx : items.length
+
+    // Modal mode: use the unified CreationModal
+    if (creationMode === 'modal') {
+      openCreationModal({
+        parentDirectoryId,
+        type: typeOverride ?? (focusedColumnIndex === 0 ? 'directory' : 'task'),
+        position: itemIndex,
+      })
+      return
+    }
+
+    // Inline mode: legacy flow
     const newItemId = crypto.randomUUID()
     setCreationState({
       mode: 'type-select',
@@ -480,12 +509,15 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   }, [
     focusedColumnIndex,
     focusedItemId,
+    columnIds,
     getItemsForColumn,
     setCreationState,
     pushKeyboardContext,
     setCreationTimeoutId,
     cancelCreation,
     popKeyboardContext,
+    creationMode,
+    openCreationModal,
   ])
 
   const handleCancelCreation = useCallback(() => {
@@ -536,7 +568,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
   const saveDirectory = useCallback(
     async (itemId: string, name: string) => {
       if (!creationState || !userId) return
-      const parentId = creationState.columnIndex === 0 ? null : (columnIds[creationState.columnIndex - 1] ?? null)
+      const parentId = columnIds[creationState.columnIndex] ?? null
       const depthLevel =
         parentId == null ? 0 : (directories.find((d) => d.id === parentId)?.depth_level ?? 0) + 1
       const dir = {
@@ -1053,6 +1085,7 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
             user_id: userId!,
             is_completed: false,
             completed_at: null,
+            status: 'not_started' as const,
             archived_at: null,
             archive_reason: null,
             priority: preserveMetadata ? task.priority : null,
@@ -1335,56 +1368,257 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
     shortcutMappings,
   ])
 
-  useKeyboard({
-    onMainView: () => setCurrentView('main_db'),
-    onUpcomingView: () => setCurrentView('upcoming'),
-    onArchiveView: handleOpenArchive,
-    onSettings: handleOpenSettings,
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-    onCommandPalette: handleOpenCommandPalette,
-    onSearch: handleOpenSearch,
-    onSearchClose: handleSearchClose,
-    onToggleShowCompleted: handleToggleShowCompleted,
-    onSaveView: handleSaveView,
-    onLoadSavedView: handleLoadSavedView,
-    onScrollLeft: scrollLeft,
-    onScrollRight: scrollRight,
-    onScrollHome: handleScrollHome,
-    onScrollEnd: handleScrollEnd,
-    onColorNone: () => setColorMode('none'),
-    onColorCategory: () => setColorMode('category'),
-    onColorPriority: () => setColorMode('priority'),
-    onInitiateCreation: initiateCreation,
-    onCreationTypeTask: handleCreationTypeTask,
-    onCreationTypeDirectory: handleCreationTypeDirectory,
-    onCreationEscape: handleCancelCreation,
-    onCreationInvalidKey: handleCreationInvalidKey,
-    onQuickEdit: startQuickEdit,
-    onFullEdit: startFullEdit,
-    onDelete: initiateDelete,
-    onCopy: copyShallow,
-    onCopyRecursive: copyRecursive,
-    onCut: cut,
-    onPaste: paste,
-    onPasteWithMetadata: pasteWithMetadata,
-    onArrowUp: moveFocusUp,
-    onArrowDown: moveFocusDown,
-    onArrowLeft: collapseColumn,
-    onArrowRight: handleEnterOrArrowRight,
-    onEnter: handleEnterOrArrowRight,
-    onEscape: handleEscape,
-    onExitEditing: handleExitEditing,
-    onAddAttachment: handleAddAttachment,
-    onOpenAllAttachments: handleOpenAllAttachments,
-    onSpace: handleSpace,
-    onShiftArrowUp: extendSelectionUp,
-    onShiftArrowDown: extendSelectionDown,
-    onCmdA: selectAllInColumn,
-    onCmdArrowUp: handleCmdArrowUp,
-    onCmdArrowDown: handleCmdArrowDown,
-    onCmdSlash: () => setShortcutSheetOpen(true),
-    enabled: true,
+  // ── Grab mode (keyboard-driven drag) ─────────────────────────────────
+  useGrabMode({ getItemsForColumn })
+
+  // ── Backslash command menu ──────────────────────────────────────────
+  const backslashMenu = useBackslashMenu()
+
+  const handleBackslashMenuOpen = useCallback(() => {
+    backslashMenu.openMenu()
+  }, [backslashMenu.openMenu])
+
+  const handleBackslashMenuClose = useCallback(() => {
+    backslashMenu.closeMenu()
+  }, [backslashMenu.closeMenu])
+
+  const handleBackslashMenuExecute = useCallback(
+    async (commandId: string) => {
+      backslashMenu.closeMenu()
+      useAppStore.getState().pushRecentAction(commandId)
+
+      switch (commandId) {
+        case 'edit':
+          startFullEdit()
+          break
+        case 'set-status':
+          // This case is handled by the backslash menu sub-view
+          // which emits 'set-status:STATUS_VALUE' instead
+          handleSpace()
+          break
+        case 'duplicate': {
+          const items = getItemsForColumn(focusedColumnIndex)
+          const item = focusedItemId ? items.find((i) => i.id === focusedItemId) : undefined
+          if (!item || !userId) break
+          if (isTask(item)) {
+            const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = item
+            try {
+              await addTask({ ...rest, title: `${item.title} (copy)`, position: item.position + 0.5 })
+              useFeedbackStore.getState().showSuccess('Task duplicated')
+            } catch {
+              useFeedbackStore.getState().showError('Failed to duplicate task')
+            }
+          } else {
+            try {
+              await addDirectory({
+                name: `${item.name} (copy)`,
+                parent_id: item.parent_id,
+                start_date: item.start_date,
+                position: item.position + 0.5,
+                depth_level: item.depth_level,
+                user_id: userId,
+              })
+              useFeedbackStore.getState().showSuccess('Directory duplicated')
+            } catch {
+              useFeedbackStore.getState().showError('Failed to duplicate directory')
+            }
+          }
+          break
+        }
+        case 'link-to': {
+          const items = getItemsForColumn(focusedColumnIndex)
+          const item = focusedItemId ? items.find((i) => i.id === focusedItemId) : undefined
+          if (item && isTask(item)) {
+            setLinkPickerTaskId(item.id)
+          }
+          break
+        }
+        case 'move-to':
+          useFeedbackStore.getState().showInfo('Move to... coming soon')
+          break
+        case 'set-priority': {
+          const items = getItemsForColumn(focusedColumnIndex)
+          const item = focusedItemId ? items.find((i) => i.id === focusedItemId) : undefined
+          if (!item || !isTask(item)) break
+          const cycle: (Task['priority'])[] = ['HIGH', 'MED', 'LOW', null]
+          const currentIdx = cycle.indexOf(item.priority)
+          const nextPriority = cycle[(currentIdx + 1) % cycle.length]
+          try {
+            await updateTask(item.id, { priority: nextPriority })
+            useFeedbackStore.getState().showSuccess(
+              nextPriority ? `Priority set to ${nextPriority}` : 'Priority cleared',
+            )
+          } catch {
+            useFeedbackStore.getState().showError('Failed to set priority')
+          }
+          break
+        }
+        case 'set-due-date':
+          useFeedbackStore.getState().showInfo('Date picker coming soon')
+          break
+        case 'delete':
+          initiateDelete()
+          break
+        case 'new-task':
+          if (creationMode === 'modal') {
+            openCreationModal({
+              parentDirectoryId: columnIds[focusedColumnIndex] ?? null,
+              type: 'task',
+            })
+          } else {
+            initiateCreation()
+            setTimeout(() => handleCreationTypeTask(), 50)
+          }
+          break
+        case 'new-directory':
+          if (creationMode === 'modal') {
+            openCreationModal({
+              parentDirectoryId: columnIds[focusedColumnIndex] ?? null,
+              type: 'directory',
+            })
+          } else {
+            initiateCreation()
+            setTimeout(() => handleCreationTypeDirectory(), 50)
+          }
+          break
+        // Multi-item commands
+        case 'complete-all': {
+          // Legacy: set all selected tasks to completed
+          const taskIds = selectedItemIds.filter((id) =>
+            tasks.some((t) => t.id === id && t.status !== 'completed'),
+          )
+          for (const id of taskIds) {
+            await changeTaskStatus(id, 'completed')
+          }
+          if (taskIds.length > 0) {
+            useFeedbackStore.getState().showSuccess(`Completed ${taskIds.length} task(s)`)
+          }
+          break
+        }
+        case 'move-all':
+          useFeedbackStore.getState().showInfo('Move all... coming soon')
+          break
+        case 'set-priority-all':
+          useFeedbackStore.getState().showInfo('Set priority for all... coming soon')
+          break
+        case 'delete-all':
+          initiateDelete()
+          break
+        case 'view-dependencies':
+          useAppStore.getState().setDependencyGraphOpen(true)
+          break
+        default:
+          // Handle set-status:STATUS and set-status-all:STATUS from sub-menu
+          if (commandId.startsWith('set-status:')) {
+            const status = commandId.split(':')[1] as TaskStatus
+            const items = getItemsForColumn(focusedColumnIndex)
+            const item = focusedItemId ? items.find((i) => i.id === focusedItemId) : undefined
+            if (item && isTask(item)) {
+              await changeTaskStatus(item.id, status)
+              useFeedbackStore.getState().showSuccess(`Status set to ${getStatusLabel(status)}`)
+            }
+          } else if (commandId.startsWith('set-status-all:')) {
+            const status = commandId.split(':')[1] as TaskStatus
+            const taskIds = selectedItemIds.filter((id) => tasks.some((t) => t.id === id))
+            for (const id of taskIds) {
+              await changeTaskStatus(id, status)
+            }
+            if (taskIds.length > 0) {
+              useFeedbackStore.getState().showSuccess(`Set ${taskIds.length} task(s) to ${getStatusLabel(status)}`)
+            }
+          }
+          break
+      }
+    },
+    [
+      backslashMenu.closeMenu,
+      startFullEdit,
+      handleSpace,
+      changeTaskStatus,
+      getItemsForColumn,
+      focusedColumnIndex,
+      focusedItemId,
+      userId,
+      addTask,
+      addDirectory,
+      updateTask,
+      initiateDelete,
+      initiateCreation,
+      handleCreationTypeTask,
+      handleCreationTypeDirectory,
+      selectedItemIds,
+      tasks,
+    ],
+  )
+
+  useActions({
+    // Global actions
+    mainView: () => setCurrentView('main_db'),
+    upcomingView: () => setCurrentView('upcoming'),
+    archiveView: handleOpenArchive,
+    settings: handleOpenSettings,
+    // View type switching
+    viewList: () => lastColumnDirectoryId && setViewForDirectory(lastColumnDirectoryId, 'list'),
+    viewCalendar: () => lastColumnDirectoryId && setViewForDirectory(lastColumnDirectoryId, 'calendar'),
+    viewKanban: () => lastColumnDirectoryId && setViewForDirectory(lastColumnDirectoryId, 'kanban'),
+    undo: handleUndo,
+    redo: handleRedo,
+    commandPalette: handleOpenCommandPalette,
+    searchOpen: handleOpenSearch,
+    searchClose: handleSearchClose,
+    completedToggle: handleToggleShowCompleted,
+    saveView: handleSaveView,
+    savedView2: () => handleLoadSavedView(0),
+    savedView3: () => handleLoadSavedView(1),
+    savedView4: () => handleLoadSavedView(2),
+    savedView5: () => handleLoadSavedView(3),
+    savedView6: () => handleLoadSavedView(4),
+    savedView7: () => handleLoadSavedView(5),
+    savedView8: () => handleLoadSavedView(6),
+    savedView9: () => handleLoadSavedView(7),
+    scrollLeft,
+    scrollRight,
+    scrollHome: handleScrollHome,
+    scrollEnd: handleScrollEnd,
+    colorNone: () => setColorMode('none'),
+    colorCategory: () => setColorMode('category'),
+    colorPriority: () => setColorMode('priority'),
+    cmdSlash: () => setShortcutSheetOpen(true),
+    // Create actions (both shortcuts trigger initiateCreation)
+    newTask: () => initiateCreation('task'),
+    newDirectory: () => initiateCreation('directory'),
+    // Creation context
+    creationTypeTask: handleCreationTypeTask,
+    creationTypeDirectory: handleCreationTypeDirectory,
+    creationEscape: handleCancelCreation,
+    'creation.invalidKey': (event?: KeyboardEvent) => handleCreationInvalidKey(event?.key ?? ''),
+    // Navigation context
+    arrowUp: moveFocusUp,
+    arrowDown: moveFocusDown,
+    arrowLeft: collapseColumn,
+    arrowRight: handleEnterOrArrowRight,
+    enter: handleEnterOrArrowRight,
+    escape: handleEscape,
+    space: handleSpace,
+    shiftArrowUp: extendSelectionUp,
+    shiftArrowDown: extendSelectionDown,
+    cmdA: selectAllInColumn,
+    cmdArrowUp: handleCmdArrowUp,
+    cmdArrowDown: handleCmdArrowDown,
+    // Edit / clipboard (navigation context)
+    optionE: startQuickEdit,
+    cmdShiftE: startFullEdit,
+    cmdDelete: initiateDelete,
+    cmdC: copyShallow,
+    cmdShiftC: copyRecursive,
+    cmdV: paste,
+    cmdShiftV: pasteWithMetadata,
+    cmdX: cut,
+    backslashMenu: handleBackslashMenuOpen,
+    // Editing context
+    exitEditing: handleExitEditing,
+    cmdShiftF: handleAddAttachment,
+    cmdShiftO: handleOpenAllAttachments,
   })
 
   useEffect(() => {
@@ -1418,10 +1652,10 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
       return
     }
     addToFocusHistory(focusedColumnIndex, item.id)
-    pushNavigation(item.id)
-    const newCol = columnIds.length
+    replaceNavigationFrom(focusedColumnIndex, item.id)
+    const newCol = focusedColumnIndex + 1
     setFocusedColumnIndex(newCol)
-    const newItems = getItemsForColumn(newCol)
+    const newItems = getItemsForParent(item.id)
     if (newItems.length > 500 && !warnedDirSize.current) {
       warnedDirSize.current = true
       useFeedbackStore.getState().showInfo(
@@ -1474,70 +1708,268 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
       ? (columnIds[creationState.columnIndex] as string)
       : null
 
+  // --- DragGhost data: build title and type maps for items ---
+  const dragGhostItemTitles = useMemo(() => {
+    const map: Record<string, string> = {}
+    tasks.forEach((t) => { map[t.id] = t.title })
+    directories.forEach((d) => { map[d.id] = d.name })
+    return map
+  }, [tasks, directories])
+
+  const dragGhostItemTypes = useMemo(() => {
+    const map: Record<string, 'task' | 'directory'> = {}
+    tasks.forEach((t) => { map[t.id] = 'task' })
+    directories.forEach((d) => { map[d.id] = 'directory' })
+    return map
+  }, [tasks, directories])
+
+  // --- Auto-scroll during drag ---
+  useDragAutoScroll({ horizontalScrollRef: scrollContainerRef })
+
+  // --- Drop completion: listen for completeDrop in uiStore ---
+  const dragState = useUIStore((s) => s.dragState)
+  const draggedItemIds = useUIStore((s) => s.draggedItemIds)
+  const dropTarget = useUIStore((s) => s.dropTarget)
+  const prevDragState = useRef(dragState)
+
+  useEffect(() => {
+    const prev = prevDragState.current
+    prevDragState.current = dragState
+
+    // Detect transition from dragging to idle (drop completed)
+    if (prev === 'dragging' && dragState === 'idle') {
+      const lastDropTarget = dropTarget
+      const lastDraggedIds = draggedItemIds
+
+      if (!lastDropTarget || lastDraggedIds.length === 0) return
+      if (lastDropTarget.isInvalid) return
+
+      // Gather all dragged items
+      const draggedItems = lastDraggedIds
+        .map((id) => {
+          const task = tasks.find((t) => t.id === id)
+          const dir = directories.find((d) => d.id === id)
+          return task ?? dir
+        })
+        .filter((item): item is Task | Directory => item != null)
+
+      if (draggedItems.length === 0) return
+
+      // Resolve the drop based on target type
+      if (lastDropTarget.type === 'between' || lastDropTarget.type === 'into' || lastDropTarget.type === 'column') {
+        const newParentId = lastDropTarget.targetId === 'home' ? null : lastDropTarget.targetId
+        const newPosition = lastDropTarget.position
+
+        // Circular parent check
+        const draggedDirs = draggedItems.filter((item) => !isTask(item)) as Directory[]
+        for (const dir of draggedDirs) {
+          if (newParentId && isCircularParent(dir.id, newParentId, directories)) {
+            return // Abort — circular reference
+          }
+        }
+
+        // Prevent tasks at root
+        const draggedTasks = draggedItems.filter((item) => isTask(item)) as Task[]
+        if (newParentId == null && draggedTasks.length > 0) return
+
+        moveItems(draggedItems, newParentId, newPosition)
+      } else if (lastDropTarget.type === 'calendar-date') {
+        // Dropping on a calendar date updates due_date
+        const dateKey = lastDropTarget.targetId // YYYY-MM-DD
+        const draggedTasks = draggedItems.filter((item) => isTask(item)) as Task[]
+        for (const task of draggedTasks) {
+          updateTask(task.id, { due_date: dateKey })
+        }
+        if (userId && draggedTasks.length > 0) {
+          pushUndoAndPersist(userId, {
+            actionType: 'update',
+            entityType: 'task',
+            entityData: {
+              items: draggedTasks,
+              field: 'due_date',
+              newValue: dateKey,
+              originalValues: Object.fromEntries(draggedTasks.map((t) => [t.id, t.due_date])),
+            } as unknown as Record<string, unknown>,
+          })
+        }
+      } else if (lastDropTarget.type === 'kanban-column') {
+        // Dropping on a kanban column updates status
+        const newStatus = lastDropTarget.targetId as TaskStatus
+        const draggedTasks = draggedItems.filter((item) => isTask(item)) as Task[]
+        for (const task of draggedTasks) {
+          const completionFields = deriveCompletionFields(newStatus, task.completed_at)
+          updateTask(task.id, {
+            status: newStatus,
+            ...completionFields,
+            position: lastDropTarget.position,
+          })
+        }
+        if (userId && draggedTasks.length > 0) {
+          pushUndoAndPersist(userId, {
+            actionType: 'update',
+            entityType: 'task',
+            entityData: {
+              items: draggedTasks,
+              field: 'status',
+              newValue: newStatus,
+              originalValues: Object.fromEntries(draggedTasks.map((t) => [t.id, t.status])),
+            } as unknown as Record<string, unknown>,
+          })
+        }
+      }
+    }
+  }, [dragState]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- View system: determine active view for the deepest column ---
+  const getViewForDirectory = useViewStore((s) => s.getViewForDirectory)
+  const setViewForDirectory = useViewStore((s) => s.setViewForDirectory)
+  const lastColumnIndex = columnIds.length - 1
+  const lastColumnDirectoryId = columnIds[lastColumnIndex] ?? null
+  const activeViewType = getViewForDirectory(lastColumnDirectoryId)
+
+  // Get items for the last column and compute view-specific data
+  const lastColumnItems = useMemo(
+    () => getItemsForColumn(lastColumnIndex),
+    [getItemsForColumn, lastColumnIndex]
+  )
+  const lastColumnViewData = useViewData(lastColumnItems, activeViewType)
+
+  const handleViewChange = useCallback(
+    (view: ViewType) => {
+      if (lastColumnDirectoryId) {
+        setViewForDirectory(lastColumnDirectoryId, view)
+      }
+    },
+    [lastColumnDirectoryId, setViewForDirectory]
+  )
+
   return (
     <div
       ref={scrollContainerRef}
       className="columns-container flex-1 flex flex-row overflow-x-auto overflow-y-hidden bg-flow-background relative"
       style={{ scrollSnapType: 'x mandatory' }}
     >
-      {columnIds.map((directoryId, columnIndex) => (
-        <Column
-          key={columnIndex}
-          columnIndex={columnIndex}
-          directoryId={directoryId}
-          directoryName={
-            directoryId
-              ? directories.find((d) => d.id === directoryId)?.name ?? ''
-              : null
-          }
-          items={getItemsForColumn(columnIndex)}
-          usePagination={
-            !!directoryId &&
-            !activeFilters.searchQuery.trim() &&
-            activeFilters.tags.length === 0 &&
-            activeFilters.priorities.length === 0 &&
-            activeFilters.categories.length === 0 &&
-            activeFilters.dateRange == null &&
-            searchResultTaskIds == null &&
-            (childCountByDirectoryId[directoryId] ?? 0) > 200
-          }
-          selectedItemIds={selectedItemIds}
-          focusedItemId={focusedItemId}
-          isActive={focusedColumnIndex === columnIndex}
-          onItemSelect={handleItemSelect}
-          onItemExpand={handleItemExpand}
-          colorMode={colorMode}
-          viewMode={viewMode}
-          searchQuery={activeFilters.searchQuery.trim() || undefined}
-          onColumnFocus={() => {
-            setFocusedColumnIndex(columnIndex)
-            const colItems = getItemsForColumn(columnIndex)
-            setFocusedItem(colItems.length > 0 ? colItems[0].id : getEmptySlotId(columnIndex))
-          }}
-          childCountByDirectoryId={childCountByDirectoryId}
-          creationState={creationState}
-          onDirectorySave={saveDirectory}
-          onDirectoryCancel={handleDirectoryCancel}
-          inlineEditState={inlineEditState}
-          onInlineSave={saveInlineEdit}
-          onInlineCancel={handleInlineCancel}
-          cutItemIds={cutItemIds}
-          onItemDragStart={setDraggingItemId}
-          onItemDragEnd={() => setDraggingItemId(null)}
-          onDrop={(targetDirectoryId, position, itemId) => {
-            const task = tasks.find((t) => t.id === itemId)
-            const directory = directories.find((d) => d.id === itemId)
-            const item = task ?? directory
-            if (!item) {
-              setDraggingItemId(null)
-              return
-            }
-            if (isTask(item) && targetDirectoryId == null) return
-            moveItems([item], targetDirectoryId, position)
-            setDraggingItemId(null)
-          }}
-        />
-      ))}
+      {columnIds.map((directoryId, columnIndex) => {
+        const isLastColumn = columnIndex === lastColumnIndex
+        const showAlternateView = isLastColumn && directoryId != null && activeViewType !== 'list'
+
+        if (showAlternateView) {
+          // Render Calendar or Kanban view for the deepest column
+          return (
+            <section
+              key={columnIndex}
+              className="flex flex-col flex-1 min-w-0 border-r border-flow-columnBorder bg-flow-background"
+              style={{ height: '100%', scrollSnapAlign: 'start' }}
+            >
+              {/* View switcher header */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-flow-columnBorder">
+                <span className="text-flow-task font-flow-semibold text-flow-textPrimary truncate">
+                  {directories.find((d) => d.id === directoryId)?.name ?? ''}
+                </span>
+                <ViewSwitcher
+                  activeView={activeViewType}
+                  onViewChange={handleViewChange}
+                />
+              </div>
+              {/* View content with fade-in animation */}
+              <div className="flex-1 min-h-0 animate-[fadeIn_150ms_ease-in]">
+                {activeViewType === 'calendar' && lastColumnViewData.type === 'calendar' && (
+                  <CalendarView
+                    data={lastColumnViewData.data}
+                    directoryId={directoryId}
+                    onCreateTask={(dirId, prefilledDate) => {
+                      openCreationModal({
+                        parentDirectoryId: dirId,
+                        type: 'task',
+                        dueDate: prefilledDate,
+                      })
+                    }}
+                  />
+                )}
+                {activeViewType === 'kanban' && lastColumnViewData.type === 'kanban' && (
+                  <KanbanView
+                    data={lastColumnViewData.data}
+                    onAddTask={(status) => {
+                      openCreationModal({
+                        parentDirectoryId: directoryId,
+                        type: 'task',
+                        status,
+                      })
+                    }}
+                  />
+                )}
+              </div>
+            </section>
+          )
+        }
+
+        return (
+          <React.Fragment key={columnIndex}>
+            <div className="flex flex-col flex-shrink-0" style={{ minWidth: COLUMN_WIDTH_PX, maxWidth: COLUMN_WIDTH_PX, height: '100%', scrollSnapAlign: 'start' }}>
+            {/* View switcher for the last column in list mode */}
+            {isLastColumn && directoryId != null && (
+              <div className="flex items-center justify-end px-2 py-1 border-b border-flow-columnBorder/50">
+                <ViewSwitcher
+                  activeView={activeViewType}
+                  onViewChange={handleViewChange}
+                />
+              </div>
+            )}
+            <Column
+              columnIndex={columnIndex}
+              directoryId={directoryId}
+              directoryName={
+                directoryId
+                  ? directories.find((d) => d.id === directoryId)?.name ?? ''
+                  : null
+              }
+              rootDisplayName={columnIndex === 0 ? rootDisplayName : undefined}
+              onRootDisplayNameSave={columnIndex === 0 ? setRootDisplayName : undefined}
+              items={getItemsForColumn(columnIndex)}
+              usePagination={
+                !!directoryId &&
+                !activeFilters.searchQuery.trim() &&
+                activeFilters.tags.length === 0 &&
+                activeFilters.priorities.length === 0 &&
+                activeFilters.categories.length === 0 &&
+                activeFilters.dateRange == null &&
+                searchResultTaskIds == null &&
+                (childCountByDirectoryId[directoryId] ?? 0) > 200
+              }
+              selectedItemIds={selectedItemIds}
+              focusedItemId={focusedItemId}
+              isActive={focusedColumnIndex === columnIndex}
+              onItemSelect={handleItemSelect}
+              onItemExpand={handleItemExpand}
+              colorMode={colorMode}
+              viewMode={viewMode}
+              searchQuery={activeFilters.searchQuery.trim() || undefined}
+              onColumnFocus={() => {
+                setFocusedColumnIndex(columnIndex)
+                const colItems = getItemsForColumn(columnIndex)
+                setFocusedItem(colItems.length > 0 ? colItems[0].id : getEmptySlotId(columnIndex))
+              }}
+              childCountByDirectoryId={childCountByDirectoryId}
+              creationState={creationState}
+              onDirectorySave={saveDirectory}
+              onDirectoryCancel={handleDirectoryCancel}
+              inlineEditState={inlineEditState}
+              onInlineSave={saveInlineEdit}
+              onInlineCancel={handleInlineCancel}
+              cutItemIds={cutItemIds}
+              onStatusClick={handleStatusClick}
+              onStatusContextMenu={handleStatusContextMenu}
+              onItemDragStart={setDraggingItemId}
+              onItemDragEnd={() => setDraggingItemId(null)}
+              onDrop={() => {
+                // Legacy callback — new drag system handles drops via effect above
+              }}
+              fullWidth
+            />
+            </div>
+          </React.Fragment>
+        )
+      })}
       {        creationState?.mode === 'task-panel' &&
         creationState.itemId &&
         taskPanelDirectoryId &&
@@ -1579,6 +2011,17 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
           onCancel={handleDeleteCancel}
         />
       )}
+      {backslashMenu.isOpen && (
+        <BackslashMenu
+          commands={backslashMenu.filteredCommands}
+          query={backslashMenu.query}
+          onQueryChange={backslashMenu.setQuery}
+          onExecute={handleBackslashMenuExecute}
+          onClose={handleBackslashMenuClose}
+          position={backslashMenu.position}
+          isMobile={backslashMenu.isMobile}
+        />
+      )}
       {expandedTaskId && (() => {
         const expandedTask = tasks.find((t) => t.id === expandedTaskId)
         return expandedTask ? (
@@ -1602,6 +2045,14 @@ export function ColumnsView({ viewMode, navigationPath, colorMode }: ColumnsView
           />
         ) : null
       })()}
+      {linkPickerTaskId && (
+        <LinkPicker
+          sourceTaskId={linkPickerTaskId}
+          onClose={() => setLinkPickerTaskId(null)}
+        />
+      )}
+      {/* Drag ghost portal — rendered on document.body */}
+      <DragGhost itemTitles={dragGhostItemTitles} itemTypes={dragGhostItemTypes} />
     </div>
   )
 }

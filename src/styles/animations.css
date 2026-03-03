@@ -51,7 +51,7 @@
 
 /* Focus indicator (keyboard-first, no hover) */
 .item-focused {
-  outline: 2px solid #007AFF;
+  outline: 2px solid var(--flow-focus);
   outline-offset: -2px;
   transition: outline 150ms ease-in-out;
 }
@@ -95,7 +95,7 @@
   left: 0;
   right: 0;
   padding: 4px 8px;
-  background-color: #ff3b30;
+  background-color: var(--flow-error);
   color: white;
   font-size: 11px;
   border-radius: 4px;
@@ -127,5 +127,24 @@
   51%,
   100% {
     opacity: 0;
+  }
+}
+
+/* FAB menu item staggered entrance */
+@keyframes fabItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Pull-to-refresh spinner */
+@keyframes ptrSpin {
+  to {
+    transform: rotate(360deg);
   }
 }

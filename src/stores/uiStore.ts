@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { getMobileMode } from '../lib/mobileDetection'
 import type { Breakpoint } from '../lib/theme'
+import type { CreationContext } from '../types/database'
 import {
   SIDEBAR_WIDTH_DEFAULT,
   SIDEBAR_WIDTH_MIN,
@@ -54,6 +55,25 @@ export interface InlineEditState {
   initialValue: string
 }
 
+// Drag-and-drop state types
+export type DragState = 'idle' | 'grabbed' | 'dragging'
+
+export type DropTargetType = 'between' | 'into' | 'column' | 'calendar-date' | 'kanban-column'
+
+export interface DropTarget {
+  type: DropTargetType
+  targetId: string
+  position: number
+  rect?: DOMRect
+  isInvalid?: boolean
+}
+
+export interface DragOrigin {
+  x: number
+  y: number
+  elementRect: DOMRect
+}
+
 // UI state; currentView/navigationPath also live in appStore for full AppState
 interface UIState {
   mobileMode: boolean
@@ -66,9 +86,20 @@ interface UIState {
   creationTimeoutId: ReturnType<typeof setTimeout> | null
   inlineEditState: InlineEditState | null
   editPanelState: { itemId: string; type: 'task' | 'directory' } | null
+  // Legacy compat – still used by consumers that read draggingItemId
   draggingItemId: string | null
+  // New drag state machine
+  dragState: DragState
+  draggedItemIds: string[]
+  dragOrigin: DragOrigin | null
+  dropTarget: DropTarget | null
+  dragGhostPosition: { x: number; y: number } | null
   completionTimeouts: Record<string, ReturnType<typeof setTimeout>>
   mobileMenuOpen: boolean
+  // Creation modal (unified creation flow)
+  creationModalOpen: boolean
+  creationContext: CreationContext | null
+  lastCreatedItemId: string | null
   setMobileMode: (mode: boolean) => void
   setBreakpoint: (b: Breakpoint) => void
   setSidebarOpen: (open: boolean) => void
@@ -82,9 +113,20 @@ interface UIState {
   setInlineEditState: (state: InlineEditState | null) => void
   setEditPanelState: (state: { itemId: string; type: 'task' | 'directory' } | null) => void
   setDraggingItemId: (id: string | null) => void
+  // New drag actions
+  startGrab: (itemIds: string[], origin: DragOrigin) => void
+  startDrag: () => void
+  updateDropTarget: (target: DropTarget | null) => void
+  updateGhostPosition: (pos: { x: number; y: number }) => void
+  completeDrop: () => void
+  cancelDrag: () => void
   setCompletionTimeout: (taskId: string, timeoutId: ReturnType<typeof setTimeout>) => void
   clearCompletionTimeout: (taskId: string) => void
   cancelCreation: () => void
+  // Creation modal actions
+  openCreationModal: (context: CreationContext) => void
+  closeCreationModal: () => void
+  setLastCreatedItemId: (id: string | null) => void
 }
 
 const layoutPrefs =
@@ -100,9 +142,17 @@ export const useUIStore = create<UIState>((set, get) => ({
   defaultView: 'main_db',
   creationState: null,
   creationTimeoutId: null,
+  creationModalOpen: false,
+  creationContext: null,
+  lastCreatedItemId: null,
   inlineEditState: null,
   editPanelState: null,
   draggingItemId: null,
+  dragState: 'idle',
+  draggedItemIds: [],
+  dragOrigin: null,
+  dropTarget: null,
+  dragGhostPosition: null,
   completionTimeouts: {},
   setMobileMode: (mode) => set({ mobileMode: mode }),
   setBreakpoint: (b) => set({ breakpoint: b }),
@@ -128,6 +178,39 @@ export const useUIStore = create<UIState>((set, get) => ({
   setInlineEditState: (state) => set({ inlineEditState: state }),
   setEditPanelState: (state) => set({ editPanelState: state }),
   setDraggingItemId: (id) => set({ draggingItemId: id }),
+  startGrab: (itemIds, origin) =>
+    set({
+      dragState: 'grabbed',
+      draggedItemIds: itemIds,
+      dragOrigin: origin,
+      dropTarget: null,
+      dragGhostPosition: null,
+      draggingItemId: itemIds[0] ?? null,
+    }),
+  startDrag: () =>
+    set({ dragState: 'dragging' }),
+  updateDropTarget: (target) =>
+    set({ dropTarget: target }),
+  updateGhostPosition: (pos) =>
+    set({ dragGhostPosition: pos }),
+  completeDrop: () =>
+    set({
+      dragState: 'idle',
+      draggedItemIds: [],
+      dragOrigin: null,
+      dropTarget: null,
+      dragGhostPosition: null,
+      draggingItemId: null,
+    }),
+  cancelDrag: () =>
+    set({
+      dragState: 'idle',
+      draggedItemIds: [],
+      dragOrigin: null,
+      dropTarget: null,
+      dragGhostPosition: null,
+      draggingItemId: null,
+    }),
   setCompletionTimeout: (taskId, timeoutId) =>
     set((s) => ({
       completionTimeouts: { ...s.completionTimeouts, [taskId]: timeoutId },
@@ -148,4 +231,11 @@ export const useUIStore = create<UIState>((set, get) => ({
       creationTimeoutId: null,
     })
   },
+  openCreationModal: (context) => {
+    set({ creationModalOpen: true, creationContext: context })
+  },
+  closeCreationModal: () => {
+    set({ creationModalOpen: false, creationContext: null })
+  },
+  setLastCreatedItemId: (id) => set({ lastCreatedItemId: id }),
 }))

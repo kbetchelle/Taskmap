@@ -1,4 +1,10 @@
-import { type ReactNode, useCallback, useRef } from 'react'
+import { type ReactNode, useCallback, useRef, useEffect } from 'react'
+import { useShortcutDispatcher } from '../../hooks/useShortcutDispatcher'
+import { useAutoArchive } from '../../hooks/useAutoArchive'
+import { useNetworkStatus } from '../../hooks/useNetworkStatus'
+import { useOfflineCache } from '../../hooks/useOfflineCache'
+import { useTheme } from '../../hooks/useTheme'
+import { useNetworkStore } from '../../stores/networkStore'
 import { useAppStore } from '../../stores/appStore'
 import { useUIStore } from '../../stores/uiStore'
 import { useConflictStore } from '../../stores/conflictStore'
@@ -18,6 +24,13 @@ import { ConflictDialog } from '../ConflictDialog'
 import { ArchiveView } from '../ArchiveView'
 import { MobileMenu } from '../MobileMenu'
 import { SidebarTree } from '../SidebarTree'
+import { DependencyGraph } from '../DependencyGraph'
+import { OfflineBanner } from '../OfflineBanner'
+import { ConnectionIndicator } from '../ConnectionIndicator'
+import { FloatingActionButton } from '../FloatingActionButton'
+import { BottomNavBar } from '../BottomNavBar'
+import { MultiSelectToolbar } from '../MultiSelectToolbar'
+import { CreationModal } from '../CreationModal'
 import {
   TOPBAR_HEIGHT_PX,
   SIDEBAR_WIDTH_DEFAULT,
@@ -29,8 +42,14 @@ interface AppContainerProps {
 }
 
 export function AppContainer({ children }: AppContainerProps) {
+  useShortcutDispatcher()
+  useAutoArchive()
+  useNetworkStatus()
+  useOfflineCache()
+  useTheme()
   useMobileMode()
-  const { breakpoint, isMobile } = useViewport()
+  const isOffline = useNetworkStore((s) => !s.isOnline)
+  const { breakpoint, isMobile, showMultiColumnMobile } = useViewport()
   const currentView = useAppStore((s) => s.currentView)
   const previousView = useAppStore((s) => s.previousView)
   const navigationPath = useAppStore((s) => s.navigationPath)
@@ -40,6 +59,7 @@ export function AppContainer({ children }: AppContainerProps) {
   const setSearchBarOpen = useAppStore((s) => s.setSearchBarOpen)
   const searchBarOpen = useAppStore((s) => s.searchBarOpen)
   const onboardingOpen = useAppStore((s) => s.onboardingOpen)
+  const dependencyGraphOpen = useAppStore((s) => s.dependencyGraphOpen)
   const setHelpOpen = useAppStore((s) => s.setHelpOpen)
   const pendingConflict = useConflictStore((s) => s.pendingConflict)
   const resolveConflict = useConflictStore((s) => s.resolveConflict)
@@ -51,6 +71,52 @@ export function AppContainer({ children }: AppContainerProps) {
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen)
   const setSidebarWidth = useUIStore((s) => s.setSidebarWidth)
   const setMobileMenuOpen = useUIStore((s) => s.setMobileMenuOpen)
+
+  // Swipe from left edge (10px zone) to open sidebar on mobile
+  useEffect(() => {
+    if (!isMobile) return
+
+    let startX = 0
+    let startY = 0
+    let tracking = false
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0]
+      if (touch.clientX <= 10 && !sidebarOpen) {
+        startX = touch.clientX
+        startY = touch.clientY
+        tracking = true
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!tracking) return
+      const touch = e.touches[0]
+      const dx = touch.clientX - startX
+      const dy = Math.abs(touch.clientY - startY)
+      // Must be more horizontal than vertical
+      if (dx > 30 && dx > dy) {
+        setSidebarOpen(true)
+        tracking = false
+      } else if (dy > 20) {
+        // Vertical scroll — abort
+        tracking = false
+      }
+    }
+
+    const handleTouchEnd = () => {
+      tracking = false
+    }
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchmove', handleTouchMove, { passive: true })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [isMobile, sidebarOpen, setSidebarOpen])
 
   const handleCloseSettings = () => {
     setCurrentView(previousView ?? 'main_db')
@@ -101,7 +167,7 @@ export function AppContainer({ children }: AppContainerProps) {
   const showSidebarOverlay = breakpoint === 'mobile' && sidebarOpen
 
   return (
-    <div className="w-screen h-screen flex flex-col overflow-hidden bg-flow-background">
+    <div className={`w-screen h-screen flex flex-col overflow-hidden bg-flow-background ${isOffline ? 'read-only-disabled' : ''}`}>
       {/* Top bar: 48px, title + hamburger on mobile, actions on right */}
       <header
         className="flex-shrink-0 border-b border-flow-columnBorder flex items-center justify-between px-4 bg-flow-background"
@@ -129,11 +195,12 @@ export function AppContainer({ children }: AppContainerProps) {
             </>
           )}
           <h1 className="text-flow-dir font-flow-semibold text-flow-textPrimary truncate">Flow</h1>
+          <ConnectionIndicator />
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
           <button
             type="button"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-flow-textSecondary hover:text-flow-textPrimary hover:bg-flow-columnBorder/30 transition-colors"
+            className="w-9 h-9 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center rounded-full text-flow-textSecondary hover:text-flow-textPrimary hover:bg-flow-columnBorder/30 transition-colors"
             aria-label="Search"
             onClick={() => setSearchBarOpen(true)}
           >
@@ -141,7 +208,7 @@ export function AppContainer({ children }: AppContainerProps) {
           </button>
           <button
             type="button"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-flow-textSecondary hover:text-flow-textPrimary hover:bg-flow-columnBorder/30 transition-colors"
+            className="w-9 h-9 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center rounded-full text-flow-textSecondary hover:text-flow-textPrimary hover:bg-flow-columnBorder/30 transition-colors"
             aria-label="Settings"
             onClick={handleOpenSettings}
           >
@@ -149,7 +216,7 @@ export function AppContainer({ children }: AppContainerProps) {
           </button>
           <button
             type="button"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-flow-textSecondary hover:text-flow-textPrimary hover:bg-flow-columnBorder/30 transition-colors font-medium text-lg"
+            className="w-9 h-9 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center rounded-full text-flow-textSecondary hover:text-flow-textPrimary hover:bg-flow-columnBorder/30 transition-colors font-medium text-lg"
             aria-label="Help – keyboard shortcuts and getting started"
             onClick={() => setHelpOpen(true)}
           >
@@ -157,6 +224,8 @@ export function AppContainer({ children }: AppContainerProps) {
           </button>
         </div>
       </header>
+
+      <OfflineBanner />
 
       {/* Body: sidebar + main */}
       <div className="flex-1 min-h-0 flex flex-row relative">
@@ -252,7 +321,7 @@ export function AppContainer({ children }: AppContainerProps) {
             </div>
           ) : currentView === 'archive' ? (
             <ArchiveView />
-          ) : isMobile ? (
+          ) : isMobile && !showMultiColumnMobile ? (
             <MobileColumnsView
               viewMode={currentView === 'upcoming' ? 'upcoming' : 'main_db'}
               navigationPath={navigationPath}
@@ -289,6 +358,12 @@ export function AppContainer({ children }: AppContainerProps) {
         />
       )}
       <MobileMenu />
+      <CreationModal />
+      {dependencyGraphOpen && <DependencyGraph />}
+      {/* Mobile-only components */}
+      {isMobile && <FloatingActionButton />}
+      {isMobile && <BottomNavBar />}
+      {isMobile && <MultiSelectToolbar />}
     </div>
   )
 }

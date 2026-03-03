@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew upgrade:*)",
+      "Bash(curl -s -X POST 'https://ztklkrwmiksherxfinru.supabase.co/auth/v1/signup' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0a2xrcndtaWtzaGVyeGZpbnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0MTUwNjAsImV4cCI6MjA4NTk5MTA2MH0.phPeLmfLoUQtHRTcslY0qWez9tDUU2G1HP9rbf6Oqnc' -H 'Content-Type: application/json' -d '{\"\"email\"\": \"\"katharinebgreen@gmail.com\"\", \"\"password\"\": \"\"dev2026\"\"}')",
+      "Bash(curl:*)",
+      "Bash(SUPABASE_URL=\"https://ztklkrwmiksherxfinru.supabase.co\":*)",
+      "Bash(SUPABASE_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0a2xrcndtaWtzaGVyeGZpbnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0MTUwNjAsImV4cCI6MjA4NTk5MTA2MH0.phPeLmfLoUQtHRTcslY0qWez9tDUU2G1HP9rbf6Oqnc\")",
+      "Bash(__NEW_LINE_a30fce6fd639ae5d__ curl -s -X POST \"$SUPABASE_URL/auth/v1/signup\" -H \"apikey: $SUPABASE_KEY\" -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"katharinebgreen@gmail.com\"\",\"\"password\"\":\"\"dev2026\"\"}')",
+      "Bash(__NEW_LINE_b191bcdcd8a8cfec__ curl -s -X POST \"$SUPABASE_URL/auth/v1/token?grant_type=password\" -H \"apikey: $SUPABASE_KEY\" -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"katharinebgreen@gmail.com\"\",\"\"password\"\":\"\"dev2026\"\"}')",
+      "Bash(python3:*)",
+      "Bash(node -e \"\nconst email = ''katharinebgreen@gmail.com'';\nconst password = ''dev2026'';\nconst url = ''https://ztklkrwmiksherxfinru.supabase.co'';\nconst key = ''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0a2xrcndtaWtzaGVyeGZpbnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0MTUwNjAsImV4cCI6MjA4NTk5MTA2MH0.phPeLmfLoUQtHRTcslY0qWez9tDUU2G1HP9rbf6Oqnc'';\n\nfetch\\(url + ''/auth/v1/token?grant_type=password'', {\n  method: ''POST'',\n  headers: { ''apikey'': key, ''Content-Type'': ''application/json'' },\n  body: JSON.stringify\\({ email, password }\\)\n}\\)\n.then\\(r => r.json\\(\\)\\)\n.then\\(d => {\n  if \\(d.access_token\\) console.log\\(''Login successful!''\\);\n  else console.log\\(''Response:'', JSON.stringify\\(d, null, 2\\)\\);\n}\\)\n.catch\\(e => console.error\\(''Error:'', e\\)\\);\n\")",
+      "Bash(npm run:*)",
+      "Bash(open:*)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}
