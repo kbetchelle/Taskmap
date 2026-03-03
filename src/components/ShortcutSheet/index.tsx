@@ -8,7 +8,12 @@ import type { ShortcutCategory } from '../../types/keyboard'
 function formatBindingDisplay(b: ShortcutBinding): string {
   // Prefer the user-remapped shortcut if available
   const remapped = useShortcutStore.getState().getShortcut(b.action)
-  return formatShortcutForDisplay(remapped || b.keys)
+  const base = formatShortcutForDisplay(remapped || b.keys)
+  // For chord bindings, append the second key so users see e.g. "⌃+Space → G"
+  if (b.isChord && b.chordSecondKey) {
+    return `${base} → ${b.chordSecondKey.toUpperCase()}`
+  }
+  return base
 }
 
 function filterBindings(
@@ -46,9 +51,11 @@ export function ShortcutSheet() {
   const sheetRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Exclude internal-only bindings (chords, grab mode internals) from display
+  // Exclude grab sub-actions (only meaningful inside grab mode, and they're
+  // just arrow keys — confusingly duplicate the navigation entries).
+  // grab.activate (isChord) IS shown so users know how to enter grab mode.
   const displayBindings = useMemo(
-    () => SHORTCUT_BINDINGS.filter(b => !b.isChord),
+    () => SHORTCUT_BINDINGS.filter(b => !b.contexts?.includes('grab')),
     []
   )
   const categories = useMemo(

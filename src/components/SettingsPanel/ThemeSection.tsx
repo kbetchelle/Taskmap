@@ -11,7 +11,7 @@ const MODES: { value: ThemeMode; label: string; icon: string }[] = [
   { value: 'dark', label: 'Dark', icon: '\uD83C\uDF19' },
 ]
 
-export function ThemeSection() {
+export function ThemeSection({ onDirty }: { onDirty?: () => void }) {
   const themeMode = useThemeStore((s) => s.themeMode)
   const accentColor = useThemeStore((s) => s.accentColor)
   const setThemeMode = useThemeStore((s) => s.setThemeMode)
@@ -27,9 +27,10 @@ export function ThemeSection() {
       // Auto-apply valid hex as user types
       if (isValidHexColor(value)) {
         setAccentColor(value)
+        onDirty?.()
       }
     },
-    [setAccentColor],
+    [setAccentColor, onDirty],
   )
 
   const isPreset = ACCENT_PRESETS.some((p) => p.color.toLowerCase() === accentColor.toLowerCase())
@@ -51,7 +52,7 @@ export function ThemeSection() {
                   : 'bg-flow-background text-flow-textSecondary hover:bg-flow-hover'
                 }
               `}
-              onClick={() => setThemeMode(mode.value)}
+              onClick={() => { setThemeMode(mode.value); onDirty?.() }}
               aria-pressed={themeMode === mode.value}
             >
               <span className="mr-1.5">{mode.icon}</span>
@@ -81,6 +82,7 @@ export function ThemeSection() {
                     setAccentColor(preset.color)
                     setShowCustomHex(false)
                     setCustomHexInput(preset.color)
+                    onDirty?.()
                   }}
                   title={preset.label}
                   aria-label={`Accent: ${preset.label}`}
@@ -119,6 +121,7 @@ export function ThemeSection() {
                 onChange={(e) => {
                   setAccentColor(e.target.value)
                   setCustomHexInput(e.target.value)
+                  onDirty?.()
                 }}
                 aria-label="Custom accent color"
               />
@@ -129,6 +132,7 @@ export function ThemeSection() {
                 onChange={(e) => handleCustomHexChange(e.target.value)}
                 placeholder="#007AFF"
                 maxLength={7}
+                data-keyboard-ignore
               />
               <button
                 type="button"

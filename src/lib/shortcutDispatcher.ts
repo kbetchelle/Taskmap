@@ -82,6 +82,8 @@ export function handleKeyDown(
   ) {
     if ((event.target as HTMLElement).getAttribute('data-keyboard-ignore') != null) return
   }
+  // Always skip shortcuts when a select element is focused
+  if (event.target instanceof HTMLSelectElement) return
 
   const currentContext = options.getContext()
 
@@ -89,13 +91,17 @@ export function handleKeyDown(
   if (pendingChord) {
     const { binding } = pendingChord
     const secondKey = binding.chordSecondKey?.toLowerCase()
-    if (secondKey && event.key.toLowerCase() === secondKey) {
+    const isCorrectKey = secondKey && event.key.toLowerCase() === secondKey
+    // Also verify the context is still valid — the user may have opened a modal
+    // between the first and second key of the chord.
+    const isValidContext = !binding.contexts || binding.contexts.includes(currentContext)
+    if (isCorrectKey && isValidContext) {
       event.preventDefault()
       clearPendingChord()
       executeAction(binding.action, event)
       return
     }
-    // Wrong key — cancel chord and fall through to normal handling
+    // Wrong key or stale context — cancel chord and fall through to normal handling
     clearPendingChord()
   }
 

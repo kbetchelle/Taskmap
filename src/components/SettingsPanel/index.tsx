@@ -156,7 +156,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-8">
-        <ThemeSection />
+        <ThemeSection onDirty={() => setHasChanges(true)} />
 
         <SettingsSection title="General">
           <SettingField

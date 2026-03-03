@@ -42,8 +42,8 @@ export function shouldPreventBrowserShortcut(
 ): boolean {
   for (const shortcut of PREVENTED_SHORTCUTS) {
     if (matchShortcut(e, shortcut)) {
-      // Space and Shift+Space: only prevent when in navigation context
-      if (shortcut === ' ' || shortcut === 'shift+ ') {
+      // Space: only prevent when in navigation context
+      if (shortcut === ' ') {
         return context === 'navigation'
       }
       return true
@@ -54,11 +54,14 @@ export function shouldPreventBrowserShortcut(
 
 export function installShortcutPrevention(): void {
   const handler = (e: KeyboardEvent) => {
-    // Always skip prevention for input/textarea - let users type freely
-    // The shortcut dispatcher will handle these separately with its own logic
+    // Always skip prevention for input, textarea, and contenteditable elements.
+    // These need native browser behaviour (typing, undo, select-all, copy/paste).
+    // The shortcut dispatcher handles them separately via data-keyboard-ignore.
     if (
       e.target instanceof HTMLInputElement ||
-      e.target instanceof HTMLTextAreaElement
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement ||
+      (e.target instanceof HTMLElement && e.target.isContentEditable)
     ) {
       return
     }

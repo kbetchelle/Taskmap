@@ -24,14 +24,23 @@ export function formatShortcutForDisplay(shortcut: string): string {
   let normalized = shortcut.replace(/mod/gi, IS_MAC ? 'Cmd' : 'Ctrl')
   // Normalize 'ctrl' (Control key) for consistent display
   normalized = normalized.replace(/ctrl/gi, 'Ctrl')
+  // Normalize space key (e.g. 'Ctrl+ ' → 'Ctrl+Space', ' ' → 'Space')
+  if (normalized === ' ') {
+    normalized = 'Space'
+  } else if (normalized.endsWith('+ ')) {
+    normalized = normalized.slice(0, -1) + 'Space'
+  }
   if (IS_MAC) {
     return normalized
       .replace(/Cmd/gi, '⌘')
+      .replace(/alt/gi, '⌥')
       .replace(/Option/gi, '⌥')
       .replace(/Shift/gi, '⇧')
       .replace(/Ctrl/gi, '⌃')
   }
-  return normalized.replace(/Cmd/gi, 'Ctrl')
+  return normalized
+    .replace(/Cmd/gi, 'Ctrl')
+    .replace(/alt/gi, 'Alt')
 }
 
 /** Get the platform's modifier key name for building shortcuts. */

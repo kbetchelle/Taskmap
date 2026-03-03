@@ -16,13 +16,17 @@ const CATEGORY_ORDER: ShortcutCategory[] = [
 
 function formatBindingDisplay(b: ShortcutBinding): string {
   const remapped = useShortcutStore.getState().getShortcut(b.action)
-  return formatShortcutForDisplay(remapped || b.keys)
+  const base = formatShortcutForDisplay(remapped || b.keys)
+  if (b.isChord && b.chordSecondKey) {
+    return `${base} → ${b.chordSecondKey.toUpperCase()}`
+  }
+  return base
 }
 
 function ShortcutsPage() {
   useShortcutStore((s) => s.mappings) // subscribe so custom shortcuts re-render
   const displayBindings = useMemo(
-    () => SHORTCUT_BINDINGS.filter(b => !b.isChord),
+    () => SHORTCUT_BINDINGS.filter(b => !b.contexts?.includes('grab')),
     []
   )
   const byCategory = useMemo(() => {
